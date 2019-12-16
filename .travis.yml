@@ -1,0 +1,35 @@
+# Config file for automatic testing at travis-ci.org
+
+language: python
+python:
+  - 3.8
+  - 3.7
+  - 3.6
+  - 3.5
+
+# before_install:
+#  - sudo apt-get install -y graphviz
+
+# command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
+install: pip install -U tox-travis
+
+# command to run tests, e.g. python setup.py test
+script: tox
+
+# email notifications
+notifications:
+  email:
+    recipients:
+      - sood.iitd@gmail.com
+
+# deploy new versions to PyPI
+deploy:
+  provider: pypi
+  distributions: sdist bdist_wheel
+  user: cloudbopper
+  password:
+    secure: ""
+  on:
+    tags: true
+    repo: cloudbopper/synmod
+    python: 3.6
