@@ -2,7 +2,7 @@
 
 from scipy.stats import bernoulli
 
-from synmod.generators.generator import Generator
+from synmod.features.generator import Generator
 
 # pylint: disable = too-few-public-methods
 class BernoulliProcess(Generator):

@@ -2,6 +2,7 @@
 
 import subprocess
 import sys
+from unittest.mock import patch
 
 from synmod import master
 
@@ -17,7 +18,9 @@ def test_main1(tmpdir):
     output_dir = get_output_dir(tmpdir, sys._getframe().f_code.co_name)
     cmd = ("python -m synmod -num_sequences 100 -num_features 10 -sequence_length 20 "
            "-output_dir {0}".format(output_dir))
-    subprocess.check_call(cmd, shell=True)
+    pass_args = cmd.split()[2:]
+    with patch.object(sys, 'argv', pass_args):
+        master.main()
 
 
 def test_main2(tmpdir):

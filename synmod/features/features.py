@@ -1,12 +1,12 @@
-"""Feature generators"""
+"""Feature generation"""
 
 from mihifepe.feature import Feature
 import numpy as np
 
 from synmod.constants import DISCRETE, CONTINUOUS
-from synmod.generators.generator import Generator
-from synmod.generators.discrete import *
-from synmod.generators.continuous import *
+from synmod.features.generator import Generator
+from synmod.features.discrete import *
+from synmod.features.continuous import *
 
 FEATURE_TYPES = [DISCRETE, CONTINUOUS]
 
@@ -25,22 +25,18 @@ class BinaryFeature(TemporalFeature):
     """Binary feature"""
     def __init__(self, name, **kwargs):
         super().__init__(name, **kwargs)
+        # TODO: add other choices of generating processes
         generator_class = np.random.choice([BernoulliProcess])
         self._generator = generator_class(self.rng_seed)
 
 
 def get_feature(name):
     """Return randomly selected feature"""
-    feature_class = get_feature_class()
-    return feature_class(name)
-
-
-def get_feature_class():
-    """Get feature class"""
-    # TODO: allow non-binary feature classes
+    # TODO: generate mix of discrete and continuous features
     # feature_class = np.random.choice(FEATURE_TYPES)
     # if feature_class == CONTINUOUS:
     #     return ContinousFeature
     # else:
     #     return np.random.choice(BinaryFeature, CategoricalFeature, OrdinalFeature)
-    return BinaryFeature
+    feature_class = BinaryFeature
+    return feature_class(name)

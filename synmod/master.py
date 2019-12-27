@@ -8,7 +8,8 @@ import pdb
 import numpy as np
 
 from synmod import constants
-from synmod.generators import generators
+from synmod.features import features as F
+from synmod.models import models as M
 
 # pylint: disable = fixme, unused-argument, unused-variable, unused-import
 
@@ -49,14 +50,10 @@ def pipeline(args):
 
 def generate_features(args):
     """Generate features"""
-    # TODO: generate mix of discrete and continuous features
     # TODO: allow across-feature interactions
-    # TODO: for each type of feature, choose (one) appropriate sampling process
     features = []
     for fid in range(args.num_features):
-        features.append(generators.get_feature(str(fid)))
-        # Randomly choose feature type randomly
-        # Randomly choose feature process
+        features.append(F.get_feature(str(fid)))
     return features
 
 
