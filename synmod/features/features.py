@@ -1,14 +1,13 @@
 """Feature generation"""
 
-from mihifepe.feature import Feature
 import numpy as np
+from mihifepe.feature import Feature
 
 from synmod.constants import DISCRETE, CONTINUOUS
-from synmod.features.generator import Generator
-from synmod.features.discrete import *
-from synmod.features.continuous import *
+from synmod.features.generators import BernoulliProcess
 
 FEATURE_TYPES = [DISCRETE, CONTINUOUS]
+
 
 class TemporalFeature(Feature):
     """Temporal feature"""

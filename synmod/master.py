@@ -1,9 +1,10 @@
 """Master pipeline"""
 
+# pylint: disable = fixme, unused-argument, unused-variable, unused-import
+
 import argparse
 import logging
 import os
-import pdb
 
 import numpy as np
 
@@ -11,7 +12,6 @@ from synmod import constants
 from synmod.features import features as F
 from synmod.models import models as M
 
-# pylint: disable = fixme, unused-argument, unused-variable, unused-import
 
 def main():
     """Parse args and launch pipeline"""
@@ -25,7 +25,7 @@ def main():
     parser.add_argument("-num_features", help="Number of features",
                         type=int, required=True)
     parser.add_argument("-fraction_relevant_features", help="Fraction of features relevant to model",
-                        type=float, default=.1)
+                        type=float, default=1)
 
     args = parser.parse_args()
 
@@ -36,16 +36,18 @@ def main():
                         format="%(asctime)s: %(message)s")
     logger = logging.getLogger(__name__)
     args.logger = logger
-    pipeline(args)
+    sequences, labels = pipeline(args)
+    return sequences, labels
 
 
 def pipeline(args):
     """Pipeline"""
     args.logger.info("Begin generating sequence data with args with args: %s" % args)
     features = generate_features(args)
-    models = generate_models(args, features)
+    model = generate_model(args, features)
     sequences = generate_sequences(args, features)
-    labels = generate_labels(args, models, sequences)
+    labels = generate_labels(args, model, sequences)
+    return sequences, labels
 
 
 def generate_features(args):
@@ -66,17 +68,16 @@ def generate_sequences(args, features):
     return sequences
 
 
-def generate_models(args, features):
-    """Generate models"""
-    # TODO: Select relevant features
-    return None
+def generate_model(args, features):
+    """Generate model"""
+    return M.get_model(args, features)
 
 
-def generate_labels(args, models, sequences):
+def generate_labels(args, model, sequences):
     """Generate labels"""
     # TODO: decide how to handle multivariate case
     # TODO: joint generation of labels and features
-    return None
+    return model.predict(sequences)
 
 
 if __name__ == "__main__":
