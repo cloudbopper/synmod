@@ -40,9 +40,9 @@ setup(
     license="MIT",
     long_description=readme + "\n\n" + changelog,
     name="synmod",
-    packages=find_packages(include=["synmod"]),
+    packages=find_packages(),
     python_requires=">= 3.5",
     url="https://github.com/cloudbopper/synmod",
-    version="0.1.1",
-    zip_safe=False,
+    version="0.1.0",
+    zip_safe=True,
 )
