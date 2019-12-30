@@ -6,8 +6,8 @@ from unittest.mock import patch
 
 from synmod import master, constants
 
-# pylint: disable = invalid-name, redefined-outer-name, protected-access
 
+# pylint: disable = invalid-name, redefined-outer-name, protected-access
 def get_output_dir(tmpdir, func_name):
     """Get unique output directory name"""
     return "{0}/output_dir_{1}".format(tmpdir, func_name)

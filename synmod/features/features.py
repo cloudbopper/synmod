@@ -54,5 +54,5 @@ def get_feature(args, name):
     """Return randomly selected feature"""
     # TODO: generate mix of discrete and continuous features
     feature_class = args.rng.choice([BinaryFeature, CategoricalFeature, OrdinalFeature, ContinuousFeature],
-                                    p=[1/6, 1/6, 1/6, 1/2])
+                                    p=[1/6, 1/6, 1/6, 1/2])  # noqa: E226
     return feature_class(name, args.rng)

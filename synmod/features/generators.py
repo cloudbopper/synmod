@@ -66,14 +66,12 @@ class MarkovChain(Generator):
             """Transition to next state"""
             return self._chain._rng.choice(self._chain._states, p=self._p)
 
-
     def __init__(self, rng, feature_type, **kwargs):
         super().__init__(rng, feature_type)
         self._n_states = kwargs.get("n_states", self._rng.integers(2, 5, endpoint=True))
         if self._feature_type == BINARY:
             self._n_states = 2
         self._states = [self.State(self, index) for index in range(self._n_states)]
-
 
     def sample(self, sequence_length):
         cur_state = self._rng.choice(self._states)  # initial state
