@@ -34,7 +34,7 @@ setup(
     include_package_data=True,
     install_requires=[
         "mihifepe",
-        "numpy",
+        "numpy>=1.17.0",
     ],
     keywords="synmod",
     license="MIT",

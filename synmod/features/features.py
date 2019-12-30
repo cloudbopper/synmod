@@ -1,14 +1,12 @@
 """Feature generation"""
 
-import numpy as np
 from mihifepe.feature import Feature
 
-from synmod.constants import DISCRETE, CONTINUOUS
-from synmod.features.generators import BernoulliProcess
-
-FEATURE_TYPES = [DISCRETE, CONTINUOUS]
+from synmod.constants import BINARY, CATEGORICAL, ORDINAL, CONTINUOUS
+from synmod.features.generators import BernoulliProcess, MarkovChain
 
 
+# TODO: shouldn't be able to instantiate this directly
 class TemporalFeature(Feature):
     """Temporal feature"""
     def __init__(self, name, **kwargs):
@@ -22,20 +20,39 @@ class TemporalFeature(Feature):
 
 class BinaryFeature(TemporalFeature):
     """Binary feature"""
-    def __init__(self, name, **kwargs):
+    def __init__(self, name, rng, **kwargs):
         super().__init__(name, **kwargs)
-        # TODO: add other choices of generating processes
-        generator_class = np.random.choice([BernoulliProcess])
-        self._generator = generator_class(self.rng_seed)
+        generator_class = rng.choice([BernoulliProcess, MarkovChain])
+        self._generator = generator_class(rng, BINARY)
 
 
-def get_feature(name):
+class CategoricalFeature(TemporalFeature):
+    """Categorical feature"""
+    def __init__(self, name, rng, **kwargs):
+        super().__init__(name, **kwargs)
+        generator_class = rng.choice([MarkovChain])
+        self._generator = generator_class(rng, CATEGORICAL)
+
+
+class OrdinalFeature(TemporalFeature):
+    """Ordinal feature"""
+    def __init__(self, name, rng, **kwargs):
+        super().__init__(name, **kwargs)
+        generator_class = rng.choice([MarkovChain])
+        self._generator = generator_class(rng, ORDINAL)
+
+
+class ContinuousFeature(TemporalFeature):
+    """Continuous feature"""
+    def __init__(self, name, rng, **kwargs):
+        super().__init__(name, **kwargs)
+        generator_class = rng.choice([MarkovChain])
+        self._generator = generator_class(rng, CONTINUOUS)
+
+
+def get_feature(args, name):
     """Return randomly selected feature"""
     # TODO: generate mix of discrete and continuous features
-    # feature_class = np.random.choice(FEATURE_TYPES)
-    # if feature_class == CONTINUOUS:
-    #     return ContinousFeature
-    # else:
-    #     return np.random.choice(BinaryFeature, CategoricalFeature, OrdinalFeature)
-    feature_class = BinaryFeature
-    return feature_class(name)
+    feature_class = args.rng.choice([BinaryFeature, CategoricalFeature, OrdinalFeature, ContinuousFeature],
+                                    p=[1/6, 1/6, 1/6, 1/2])
+    return feature_class(name, args.rng)

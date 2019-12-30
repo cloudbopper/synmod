@@ -8,7 +8,6 @@ import os
 
 import numpy as np
 
-from synmod import constants
 from synmod.features import features as F
 from synmod.models import models as M
 
@@ -26,16 +25,21 @@ def main():
                         type=int, required=True)
     parser.add_argument("-fraction_relevant_features", help="Fraction of features relevant to model",
                         type=float, default=1)
-
+    parser.add_argument("-seed", help="Seed for RNG, random by default",
+                        default=None, type=int)
+    # Parse args
     args = parser.parse_args()
-
+    # Output dir
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
-    np.random.seed(constants.SEED)
+    # RNG
+    # https://docs.scipy.org/doc/numpy/reference/random/bit_generators/index.html#seeding-and-entropy
+    args.rng = np.random.default_rng(np.random.SeedSequence(args.seed))
+    # Logger
     logging.basicConfig(level=logging.INFO, filename="%s/master.log" % args.output_dir,
                         format="%(asctime)s: %(message)s")
-    logger = logging.getLogger(__name__)
-    args.logger = logger
+    args.logger = logging.getLogger(__name__)
+    # Execute pipeline
     sequences, labels = pipeline(args)
     return sequences, labels
 
@@ -55,7 +59,7 @@ def generate_features(args):
     # TODO: allow across-feature interactions
     features = []
     for fid in range(args.num_features):
-        features.append(F.get_feature(str(fid)))
+        features.append(F.get_feature(args, str(fid)))
     return features
 
 
