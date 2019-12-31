@@ -34,3 +34,9 @@ class Average(Operation):
     """Computes average of inputs"""
     def __init__(self, windows):
         super().__init__(windows, np.average, np.average)
+
+
+class Max(Operation):
+    """Computes max of inputs"""
+    def __init__(self, windows):
+        super().__init__(windows, np.max, np.max)

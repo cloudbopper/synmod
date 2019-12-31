@@ -3,14 +3,14 @@
 from sklearn.base import RegressorMixin
 from mihifepe.simulation.simulation import get_relevant_features
 
-from synmod.models.operations import Average
+from synmod.models.operations import Average, Max
 
 
 # pylint: disable = invalid-name
 # TODO: add classifier
 class Regressor(RegressorMixin):
     """Regression model"""
-    operations = [Average]  # TODO: add other ops
+    operations = [Average, Max]  # TODO: add other ops
 
     def __init__(self, operation, *args, **kwargs):
         self._operation = operation
