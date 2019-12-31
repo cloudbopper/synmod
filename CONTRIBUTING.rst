@@ -125,13 +125,17 @@ To run debugger within pytest::
     pytest --trace  # Drop to PDB at the start of a test
     pytest --pdb  # Drop to PDB on failures
 
-To run pylint::
+To generate interactive coverage report::
 
-    pylint synmod tests
+    make coverage
 
-To run flake8::
+To profile the code::
 
-    flake8 synmod tests
+    make profile
+
+To run linters::
+
+    make lint
 
 ---------
 Deploying

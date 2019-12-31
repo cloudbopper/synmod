@@ -10,5 +10,6 @@ coverage
 pytest
 pytest-runner
 pytest-regressions
+pytest-profiling
 pytest-cov
 codecov

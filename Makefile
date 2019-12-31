@@ -49,6 +49,7 @@ clean-test: ## remove test and coverage artifacts
 	rm -f .coverage
 	rm -fr htmlcov/
 	rm -fr .pytest_cache
+	rm -fr prof/
 
 lint: ## check style with pylint/flake8
 	pylint synmod tests
@@ -65,6 +66,10 @@ coverage: ## check code coverage quickly with the default Python
 	coverage report -m
 	coverage html
 	$(BROWSER) htmlcov/index.html
+
+profile:  # profile the code
+	pytest --profile-svg tests
+	open prof/combined.svg
 
 docs: ## generate Sphinx HTML documentation, including API docs
 	rm -f docs/synmod.rst
