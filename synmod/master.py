@@ -3,10 +3,11 @@
 # pylint: disable = fixme, unused-argument, unused-variable, unused-import
 
 import argparse
-import logging
 import os
 
 import numpy as np
+from mihifepe import utils
+from mihifepe.constants import EPSILON_IRRELEVANT, ADDITIVE_GAUSSIAN, NO_NOISE
 
 from synmod.features import features as F
 from synmod.models import models as M
@@ -25,21 +26,20 @@ def main():
                         type=int, required=True)
     parser.add_argument("-fraction_relevant_features", help="Fraction of features relevant to model",
                         type=float, default=1)
+    parser.add_argument("-num_interactions", help="number of pairwise in aggregation model (default 0)",
+                        type=int, default=0)
+    parser.add_argument("-include_interaction_only_features", help="include interaction-only features in aggregation model"
+                        " in addition to linear + interaction features (excluded by default)", action="store_true")
+    # FIXME: noise_type is needed to generate polynomial, but not used by model.predict.
+    parser.add_argument("-noise_type", help="type of noise to add to aggregation model (default none)",
+                        choices=[EPSILON_IRRELEVANT, ADDITIVE_GAUSSIAN, NO_NOISE], default=NO_NOISE)
     parser.add_argument("-seed", help="Seed for RNG, random by default",
                         default=None, type=int)
-    # Parse args
     args = parser.parse_args()
-    # Output dir
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
-    # RNG
-    # https://docs.scipy.org/doc/numpy/reference/random/bit_generators/index.html#seeding-and-entropy
     args.rng = np.random.default_rng(np.random.SeedSequence(args.seed))
-    # Logger
-    logging.basicConfig(level=logging.INFO, filename="%s/master.log" % args.output_dir,
-                        format="%(asctime)s: %(message)s")
-    args.logger = logging.getLogger(__name__)
-    # Execute pipeline
+    args.logger = utils.get_logger(__name__, "%s/master.log" % args.output_dir)
     sequences, labels = pipeline(args)
     return sequences, labels
 

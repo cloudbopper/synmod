@@ -33,7 +33,7 @@ setup(
     },
     include_package_data=True,
     install_requires=[
-        "mihifepe",
+        "mihifepe @ git+https://github.com/Craven-Biostat-Lab/mihifepe",
         "numpy>=1.17.0",
     ],
     keywords="synmod",

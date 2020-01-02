@@ -16,27 +16,28 @@ class Operation(ABC):
     def operate(self, X):
         """Operate on input data"""
         # TODO: possibly vectorize use numpy broadcasting for efficiency
-        y = np.empty((len(X), 1))
+        num_sequences, _, fv_length = X.shape
+        y = np.empty(num_sequences)
         for sid, sequence in enumerate(X):
-            outputs = {}
+            x = np.zeros(fv_length)  # feature-wise outputs
             data = np.transpose(sequence)  # To get features x time
             for ssid, subseq in enumerate(data):
                 # Subsequence corresponding to single feature
                 window = self._windows[ssid]
                 if window is not None:  # Relevant feature
                     (left, right) = window
-                    outputs[ssid] = self._fop(subseq[left: right + 1])  # Apply feature operation in feature-specific window
-            y[sid] = self._aop(list(outputs.values()))  # Aggregate across features
+                    x[ssid] = self._fop(subseq[left: right + 1])  # Apply feature operation in feature-specific window
+            y[sid] = self._aop(x)  # Aggregate across features
         return y
 
 
 class Average(Operation):
     """Computes average of inputs"""
-    def __init__(self, windows):
-        super().__init__(windows, np.average, np.average)
+    def __init__(self, windows, polynomial_fn):
+        super().__init__(windows, np.average, polynomial_fn)
 
 
 class Max(Operation):
     """Computes max of inputs"""
-    def __init__(self, windows):
-        super().__init__(windows, np.max, np.max)
+    def __init__(self, windows, polynomial_fn):
+        super().__init__(windows, np.max, polynomial_fn)

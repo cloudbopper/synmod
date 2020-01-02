@@ -1,7 +1,9 @@
 """Model generation"""
 
+from functools import reduce
+
 from sklearn.base import RegressorMixin
-from mihifepe.simulation.simulation import get_relevant_features
+from mihifepe.simulation.simulation import gen_polynomial
 
 from synmod.models.operations import Average, Max
 
@@ -28,14 +30,15 @@ class Regressor(RegressorMixin):
 
 def get_model(args, features):
     """Generate and return model"""
-    # Get relevant features
-    relevant_feature_ids = get_relevant_features(args)
+    # Get polynomial function over relevant features with linear and pairwise interaction terms
+    _, relevant_feature_map, polynomial_fn = gen_polynomial(args)
     # Select time window for each feature
+    relevant_feature_ids = reduce(set.union, relevant_feature_map.keys(), set())
     windows = [get_window(args) if fid in relevant_feature_ids else None for fid, _ in enumerate(features)]
     # Select model type
     model_type = args.rng.choice([Regressor])  # TODO: include classifier
     # Select model operation
-    operation = args.rng.choice(model_type.operations)(windows)
+    operation = args.rng.choice(model_type.operations)(windows, polynomial_fn)
     # Instantiate and return model
     return model_type(operation)
 
