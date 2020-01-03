@@ -7,37 +7,35 @@ import numpy as np
 
 class Operation(ABC):
     """Operation base class"""
-    def __init__(self, windows, fop, aop):
+    def __init__(self, windows, operator):
         self._windows = windows  # Window corresponding to feature operations
-        self._fop = fop  # Feature operator
-        self._aop = aop  # Aggregation operator
+        self._operator = operator  # Feature operator
 
-    # pylint: disable = invalid-name
-    def operate(self, X):
-        """Operate on input data"""
+    def operate(self, sequences):
+        """Apply feature-wise operations to sequence data"""
         # TODO: possibly vectorize use numpy broadcasting for efficiency
-        num_sequences, _, fv_length = X.shape
-        y = np.empty(num_sequences)
-        for sid, sequence in enumerate(X):
-            x = np.zeros(fv_length)  # feature-wise outputs
+        num_sequences, _, num_features = sequences.shape  # num_sequences * seq_length * num_features
+        matrix = np.empty((num_sequences, num_features))
+        for sid, sequence in enumerate(sequences):
+            row = np.zeros(num_features)  # feature-wise outputs
             data = np.transpose(sequence)  # To get features x time
             for ssid, subseq in enumerate(data):
                 # Subsequence corresponding to single feature
                 window = self._windows[ssid]
                 if window is not None:  # Relevant feature
                     (left, right) = window
-                    x[ssid] = self._fop(subseq[left: right + 1])  # Apply feature operation in feature-specific window
-            y[sid] = self._aop(x)  # Aggregate across features
-        return y
+                    row[ssid] = self._operator(subseq[left: right + 1])  # Apply feature-specific operation in feature-specific window
+            matrix[sid] = row
+        return matrix
 
 
 class Average(Operation):
     """Computes average of inputs"""
-    def __init__(self, windows, polynomial_fn):
-        super().__init__(windows, np.average, polynomial_fn)
+    def __init__(self, windows):
+        super().__init__(windows, np.average)
 
 
 class Max(Operation):
     """Computes max of inputs"""
-    def __init__(self, windows, polynomial_fn):
-        super().__init__(windows, np.max, polynomial_fn)
+    def __init__(self, windows):
+        super().__init__(windows, np.max)

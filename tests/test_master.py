@@ -13,10 +13,10 @@ def get_output_dir(tmpdir, func_name):
     return "{0}/output_dir_{1}".format(tmpdir, func_name)
 
 
-def test_main1(tmpdir):
+def test_regressor1(tmpdir):
     """Test synthetic data generation"""
     output_dir = get_output_dir(tmpdir, sys._getframe().f_code.co_name)
-    cmd = ("python -m synmod -num_sequences 100 -num_features 10 -sequence_length 20 "
+    cmd = ("python -m synmod -model_type regressor -num_sequences 100 -num_features 10 -sequence_length 20 "
            "-fraction_relevant_features 0.5 -include_interaction_only_features -output_dir {0} -seed {1}"
            .format(output_dir, constants.SEED))
     pass_args = cmd.split()[2:]
@@ -24,10 +24,21 @@ def test_main1(tmpdir):
         master.main()
 
 
-def test_main2(tmpdir):
+def test_subprocess1(tmpdir):
     """Test synthetic data generation"""
     output_dir = get_output_dir(tmpdir, sys._getframe().f_code.co_name)
-    cmd = ("python -m synmod -num_sequences 100 -num_features 10 -sequence_length 20 "
+    cmd = ("python -m synmod -model_type regressor -num_sequences 100 -num_features 10 -sequence_length 20 "
            "-fraction_relevant_features 0.5 -include_interaction_only_features -output_dir {0} -seed {1}"
            .format(output_dir, constants.SEED))
     subprocess.check_call(cmd, shell=True)
+
+
+def test_classifier1(tmpdir):
+    """Test synthetic data generation"""
+    output_dir = get_output_dir(tmpdir, sys._getframe().f_code.co_name)
+    cmd = ("python -m synmod -model_type classifier -num_sequences 100 -num_features 10 -sequence_length 20 "
+           "-fraction_relevant_features 0.5 -include_interaction_only_features -output_dir {0} -seed {1}"
+           .format(output_dir, constants.SEED))
+    pass_args = cmd.split()[2:]
+    with patch.object(sys, 'argv', pass_args):
+        master.main()

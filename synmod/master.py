@@ -9,6 +9,7 @@ import numpy as np
 from mihifepe import utils
 from mihifepe.constants import EPSILON_IRRELEVANT, ADDITIVE_GAUSSIAN, NO_NOISE
 
+from synmod.constants import CLASSIFIER, REGRESSOR
 from synmod.features import features as F
 from synmod.models import models as M
 
@@ -33,6 +34,8 @@ def main():
     # FIXME: noise_type is needed to generate polynomial, but not used by model.predict.
     parser.add_argument("-noise_type", help="type of noise to add to aggregation model (default none)",
                         choices=[EPSILON_IRRELEVANT, ADDITIVE_GAUSSIAN, NO_NOISE], default=NO_NOISE)
+    parser.add_argument("-model_type", help="type of model (classifier/regressor) - default random",
+                        choices=[CLASSIFIER, REGRESSOR], default=None)
     parser.add_argument("-seed", help="Seed for RNG, random by default",
                         default=None, type=int)
     args = parser.parse_args()
@@ -40,6 +43,8 @@ def main():
         os.makedirs(args.output_dir)
     args.rng = np.random.default_rng(np.random.SeedSequence(args.seed))
     args.logger = utils.get_logger(__name__, "%s/master.log" % args.output_dir)
+    if not args.model_type:
+        args.model_type = args.rng.choice([CLASSIFIER, REGRESSOR])
     sequences, labels = pipeline(args)
     return sequences, labels
 
@@ -48,8 +53,8 @@ def pipeline(args):
     """Pipeline"""
     args.logger.info("Begin generating sequence data with args with args: %s" % args)
     features = generate_features(args)
-    model = generate_model(args, features)
     sequences = generate_sequences(args, features)
+    model = generate_model(args, features, sequences)
     labels = generate_labels(args, model, sequences)
     return sequences, labels
 
@@ -72,9 +77,9 @@ def generate_sequences(args, features):
     return sequences
 
 
-def generate_model(args, features):
+def generate_model(args, features, sequences):
     """Generate model"""
-    return M.get_model(args, features)
+    return M.get_model(args, features, sequences)
 
 
 def generate_labels(args, model, sequences):
