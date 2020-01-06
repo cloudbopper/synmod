@@ -7,7 +7,7 @@ from setuptools import find_packages, setup
 with open("README.rst") as readme_file:
     readme = readme_file.read()
 
-with open("CHANGELOG.rst") as changelog_file:
+with open("docs/changelog.rst") as changelog_file:
     changelog = changelog_file.read()
 
 setup(

@@ -1,4 +1,4 @@
-Welcome to synmod's documentation!
+Welcome to anamod's documentation!
 ========================================
 
 .. toctree::
@@ -7,13 +7,6 @@ Welcome to synmod's documentation!
 
    readme
    usage
-   examples
    contributing
    authors
    changelog
-
-Indices and tables
-==================
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`

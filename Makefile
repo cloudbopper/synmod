@@ -54,6 +54,7 @@ clean-test: ## remove test and coverage artifacts
 lint: ## check style with pylint/flake8
 	pylint synmod tests
 	flake8 synmod tests
+	doc8 docs README.rst
 
 test: ## run tests quickly with the default Python
 	py.test
