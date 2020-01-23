@@ -1,6 +1,6 @@
 """List of constants"""
 
-# Basic
+# Misc
 SEED = 94756812597749967251918284421845484907  # using np.random.SeedSequence.entropy
 
 # Feature
@@ -13,3 +13,7 @@ ORDINAL = "ordinal"
 # Models
 CLASSIFIER = "classifier"
 REGRESSOR = "regressor"
+
+# Synthesis types
+STATIC = "static"
+TEMPORAL = "temporal"

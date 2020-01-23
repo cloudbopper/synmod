@@ -6,57 +6,60 @@ import argparse
 import os
 
 import numpy as np
-from mihifepe import utils
-from mihifepe.constants import EPSILON_IRRELEVANT, ADDITIVE_GAUSSIAN, NO_NOISE
 
-from synmod.constants import CLASSIFIER, REGRESSOR
-from synmod.features import features as F
-from synmod.models import models as M
+from synmod import constants
+from synmod import features as F
+from synmod import models as M
+from synmod.utils import get_logger
 
 
 def main():
     """Parse args and launch pipeline"""
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser("python synmod")
     # Required arguments
-    parser.add_argument("-output_dir", help="Output directory", required=True)
-    parser.add_argument("-sequence_length", help="Length of regularly sampled sequence",
-                        type=int, required=True)
-    parser.add_argument("-num_sequences", help="Number of sequences (instances)",
-                        type=int, required=True)
-    parser.add_argument("-num_features", help="Number of features",
-                        type=int, required=True)
-    parser.add_argument("-fraction_relevant_features", help="Fraction of features relevant to model",
+    required = parser.add_argument_group("Required parameters")
+    required.add_argument("-output_dir", help="Output directory", required=True)
+    required.add_argument("-num_features", help="Number of features",
+                          type=int, required=True)
+    required.add_argument("-num_instances", help="Number of instances",
+                          type=int, required=True)
+    required.add_argument("-synthesis_type", help="Type of data/model synthesis to perform",
+                          default=constants.TEMPORAL, choices=[constants.TEMPORAL, constants.STATIC])
+    # Optional common arguments
+    common = parser.add_argument_group("Common optional parameters")
+    common.add_argument("-fraction_relevant_features", help="Fraction of features relevant to model",
                         type=float, default=1)
-    parser.add_argument("-num_interactions", help="number of pairwise in aggregation model (default 0)",
+    common.add_argument("-num_interactions", help="number of pairwise in aggregation model (default 0)",
                         type=int, default=0)
-    parser.add_argument("-include_interaction_only_features", help="include interaction-only features in aggregation model"
+    common.add_argument("-include_interaction_only_features", help="include interaction-only features in aggregation model"
                         " in addition to linear + interaction features (excluded by default)", action="store_true")
-    # FIXME: noise_type is needed to generate polynomial, but not used by model.predict.
-    parser.add_argument("-noise_type", help="type of noise to add to aggregation model (default none)",
-                        choices=[EPSILON_IRRELEVANT, ADDITIVE_GAUSSIAN, NO_NOISE], default=NO_NOISE)
-    parser.add_argument("-model_type", help="type of model (classifier/regressor) - default random",
-                        choices=[CLASSIFIER, REGRESSOR], default=None)
-    parser.add_argument("-seed", help="Seed for RNG, random by default",
+    common.add_argument("-seed", help="Seed for RNG, random by default",
                         default=None, type=int)
+    # Temporal synthesis arguments
+    temporal = parser.add_argument_group("Temporal synthesis parameters")
+    temporal.add_argument("-sequence_length", help="Length of regularly sampled sequence",
+                          type=int, required=True)
+    # TODO: model type should be common to both synthesis types
+    temporal.add_argument("-model_type", help="type of model (classifier/regressor) - default random",
+                          choices=[constants.CLASSIFIER, constants.REGRESSOR], default=None)
     args = parser.parse_args()
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
-    args.rng = np.random.default_rng(np.random.SeedSequence(args.seed))
-    args.logger = utils.get_logger(__name__, "%s/master.log" % args.output_dir)
+    args.rng = np.random.default_rng(args.seed)
+    args.logger = get_logger(__name__, "%s/synmod.log" % args.output_dir)
     if not args.model_type:
-        args.model_type = args.rng.choice([CLASSIFIER, REGRESSOR])
-    sequences, labels = pipeline(args)
-    return sequences, labels
+        args.model_type = args.rng.choice([constants.CLASSIFIER, constants.REGRESSOR])
+    return pipeline(args)
 
 
 def pipeline(args):
     """Pipeline"""
     args.logger.info("Begin generating sequence data with args with args: %s" % args)
     features = generate_features(args)
-    sequences = generate_sequences(args, features)
-    model = generate_model(args, features, sequences)
-    labels = generate_labels(args, model, sequences)
-    return sequences, labels
+    instances = generate_instances(args, features)
+    model = generate_model(args, features, instances)
+    # TODO: ensure that classification model does not have skewed labels
+    return features, instances, model
 
 
 def generate_features(args):
@@ -68,25 +71,30 @@ def generate_features(args):
     return features
 
 
-def generate_sequences(args, features):
-    """Generate sequences"""
-    sequences = np.empty((args.num_sequences, args.sequence_length, args.num_features))
-    for sid in range(args.num_sequences):
-        subseq = [feature.sample(args.sequence_length) for feature in features]
-        sequences[sid] = np.transpose(subseq)
-    return sequences
+def generate_instances(args, features):
+    """Generate instances"""
+    if args.synthesis_type == constants.STATIC:
+        instances = np.empty((args.num_instances, args.num_features), dtype=np.int64)
+        for sid in range(args.num_instances):
+            instances[sid] = [feature.sample() for feature in features]
+    else:
+        instances = np.empty((args.num_instances, args.sequence_length, args.num_features))
+        for sid in range(args.num_instances):
+            subseq = [feature.sample(args.sequence_length) for feature in features]
+            instances[sid] = np.transpose(subseq)
+    return instances
 
 
-def generate_model(args, features, sequences):
+def generate_model(args, features, instances):
     """Generate model"""
-    return M.get_model(args, features, sequences)
+    return M.get_model(args, features, instances)
 
 
-def generate_labels(args, model, sequences):
+def generate_labels(args, model, instances):
     """Generate labels"""
     # TODO: decide how to handle multivariate case
     # TODO: joint generation of labels and features
-    return model.predict(sequences)
+    return model.predict(instances)
 
 
 if __name__ == "__main__":

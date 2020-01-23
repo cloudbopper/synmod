@@ -7,7 +7,7 @@ import numpy as np
 
 class Operation(ABC):
     """Operation base class"""
-    def __init__(self, windows, operator):
+    def __init__(self, windows=None, operator=None):
         self._windows = windows  # Window corresponding to feature operations
         self._operator = operator  # Feature operator
 
@@ -39,3 +39,9 @@ class Max(Operation):
     """Computes max of inputs"""
     def __init__(self, windows):
         super().__init__(windows, np.max)
+
+
+class Identity(Operation):
+    """Returns the input as-is, does not aggregate (used for static data)"""
+    def operate(self, sequences):
+        return sequences
