@@ -13,19 +13,14 @@ class Operation(ABC):
 
     def operate(self, sequences):
         """Apply feature-wise operations to sequence data"""
-        # TODO: possibly vectorize use numpy broadcasting for efficiency
-        num_sequences, _, num_features = sequences.shape  # num_sequences * seq_length * num_features
-        matrix = np.empty((num_sequences, num_features))
-        for sid, sequence in enumerate(sequences):
-            row = np.zeros(num_features)  # feature-wise outputs
-            data = np.transpose(sequence)  # To get features x time
-            for ssid, subseq in enumerate(data):
-                # Subsequence corresponding to single feature
-                window = self._windows[ssid]
-                if window is not None:  # Relevant feature
-                    (left, right) = window
-                    row[ssid] = self._operator(subseq[left: right + 1])  # Apply feature-specific operation in feature-specific window
-            matrix[sid] = row
+        # TODO: possibly vectorize using masks for efficiency
+        num_instances, num_features, _ = sequences.shape  # sequences: instances X features X timesteps
+        matrix = np.zeros((num_instances, num_features))
+        for fidx in range(num_features):
+            window = self._windows[fidx]
+            if window is not None:
+                (left, right) = window
+                matrix[:, fidx] = np.apply_along_axis(self._operator, 1, sequences[:, fidx, left: right + 1])
         return matrix
 
 

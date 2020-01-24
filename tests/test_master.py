@@ -44,10 +44,23 @@ def test_classifier1(tmpdir):
         master.main()
 
 
-def test_reproducible1(tmpdir, data_regression):
+def test_reproducible_classifier(tmpdir, data_regression):
     """Reproducibility of results regression test"""
     output_dir = get_output_dir(tmpdir, sys._getframe().f_code.co_name)
     cmd = ("python -m synmod -model_type classifier -num_instances 100 -num_features 10 -sequence_length 20 "
+           "-fraction_relevant_features 0.8 -include_interaction_only_features -output_dir {0} -seed {1}"
+           .format(output_dir, constants.SEED))
+    pass_args = cmd.split()[2:]
+    with patch.object(sys, 'argv', pass_args):
+        _, data, model = master.main()
+    labels = model.predict(data)
+    data_regression.check(data.tostring() + labels.tostring())
+
+
+def test_reproducible_regressor(tmpdir, data_regression):
+    """Reproducibility of results regression test"""
+    output_dir = get_output_dir(tmpdir, sys._getframe().f_code.co_name)
+    cmd = ("python -m synmod -model_type regressor -num_instances 100 -num_features 10 -sequence_length 20 "
            "-fraction_relevant_features 0.8 -include_interaction_only_features -output_dir {0} -seed {1}"
            .format(output_dir, constants.SEED))
     pass_args = cmd.split()[2:]

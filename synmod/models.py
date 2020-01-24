@@ -24,6 +24,7 @@ class Classifier(ClassifierMixin):
         # Fit estimator on data (X, y) after applying operation
         self._estimator = estimator()  # TODO: estimator params incl. random_state for reproducibility
         self._estimator.fit(self._operation.operate(X), y)
+        # self.relevant_feature_map = None  # TODO
 
     def fit(self, X, y):
         """The model is defined in advance, not fitted to data, so throw exception"""

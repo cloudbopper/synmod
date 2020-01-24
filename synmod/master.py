@@ -78,10 +78,9 @@ def generate_instances(args, features):
         for sid in range(args.num_instances):
             instances[sid] = [feature.sample() for feature in features]
     else:
-        instances = np.empty((args.num_instances, args.sequence_length, args.num_features))
+        instances = np.empty((args.num_instances, args.num_features, args.sequence_length))
         for sid in range(args.num_instances):
-            subseq = [feature.sample(args.sequence_length) for feature in features]
-            instances[sid] = np.transpose(subseq)
+            instances[sid] = [feature.sample(args.sequence_length) for feature in features]
     return instances
 
 
