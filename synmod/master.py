@@ -85,6 +85,7 @@ def generate_instances(args, features):
 
 def generate_model(args, features, instances):
     """Generate model"""
+    args.rng = np.random.default_rng(args.seed)  # Reset RNG for consistent model independent of instances
     return M.get_model(args, features, instances)
 
 
