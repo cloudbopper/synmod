@@ -1,66 +1,69 @@
 """Model generation"""
 
+from abc import ABC
 import functools
 import itertools
-import sympy
-from sympy.utilities.lambdify import lambdify
 
 import numpy as np
-from sklearn.base import ClassifierMixin, RegressorMixin
-from sklearn.linear_model import LogisticRegression
+from scipy.special import expit  # pylint: disable = no-name-in-module
+import sympy
+from sympy.utilities.lambdify import lambdify
 
 from synmod import constants
 from synmod.operations import Average, Max, Identity
 
 
 # pylint: disable = invalid-name
-class Classifier(ClassifierMixin):
-    """Classifier model"""
-    estimators = [LogisticRegression]  # TODO: maybe add other estimators
+class Model(ABC):
+    """Model base class"""
+    def __init__(self, operation, polynomial_fn, relevant_feature_map, X=None):
+        # pylint: disable = unused-argument
+        self._operation = operation  # operation to perform aggregation over time and generate feature vector
+        self._polynomial_fn = polynomial_fn  # polynomial over aggregated feature vector
+        self.relevant_feature_map = relevant_feature_map  # map of feature id's to polynomial coefficients
 
-    def __init__(self, operation, estimator, X, y, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._operation = operation
-        # Fit estimator on data (X, y) after applying operation
-        self._estimator = estimator()  # TODO: estimator params incl. random_state for reproducibility
-        self._estimator.fit(self._operation.operate(X), y)
-        # self.relevant_feature_map = None  # TODO
-
-    def fit(self, X, y):
-        """The model is defined in advance, not fitted to data, so throw exception"""
-        # TODO: check what happens if this isn't implemented
-        raise NotImplementedError("The model is defined in advance, not fitted to data")
-
-    def predict(self, X):
-        """Compute outputs on instances in X by applying operation to features followed by classification using estimator"""
-        return self._estimator.predict(self._operation.operate(X))
+    def predict(self, X, **kwargs):
+        """Predict outputs on input instances"""
 
     @staticmethod
     def loss(y_true, y_pred):
-        """Loss function used by classifier"""
-        return -np.log(y_pred) if y_true else -np.log(y_pred)  # Binary cross-entropy
+        """Compute loss vector for given target-prediction pairs"""
 
 
-class Regressor(RegressorMixin):
+class Classifier(Model):
+    """Classification model"""
+    def __init__(self, operation, polynomial_fn, relevant_feature_map, X):
+        super().__init__(operation, polynomial_fn, relevant_feature_map)
+        assert X is not None
+        self._threshold = np.median(self._polynomial_fn(self._operation.operate(X).transpose()))
+
+    def predict(self, X, **kwargs):
+        """
+        Predict output probabilities on instances in X by aggregating features over time, applying a polynomial,
+        thresholding, then applying a sigmoid. If 'labels' is asserted, return output labels
+        """
+        labels = kwargs.get("labels", False)
+        values = expit(self._polynomial_fn(self._operation.operate(X).transpose()) - self._threshold)  # Sigmoid output
+        if labels:
+            values = (values > 0.5).astype(np.int32)
+        return values
+
+    @staticmethod
+    def loss(y_true, y_pred):
+        """Logistic loss"""
+        # TODO: 0-1 loss
+        return -y_true * np.log(y_pred) - (1 - y_true) * np.log(1 - y_pred)  # Binary cross-entropy
+
+
+class Regressor(Model):
     """Regression model"""
-    def __init__(self, operation, polynomial_fn, relevant_feature_map, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._operation = operation
-        self._polynomial_fn = polynomial_fn
-        self.relevant_feature_map = relevant_feature_map  # map of feature id's to polynomial coefficients
-
-    def fit(self, X, y):
-        """The model is defined in advance, not fitted to data, so throw exception"""
-        # TODO: check what happens if this isn't implemented
-        raise NotImplementedError("The model is defined in advance, not fitted to data")
-
-    def predict(self, X):
-        """Compute outputs on instances in X by applying operation to features followed by polynomial"""
+    def predict(self, X, **kwargs):
+        """Predict outputs on instances in X by aggregating features over time and applying a polynomial"""
         return self._polynomial_fn(self._operation.operate(X).transpose())
 
     @staticmethod
     def loss(y_true, y_pred):
-        """Loss function used by regressor"""
+        """RMSE loss"""
         # Don't use sklearn.metrics.mean_squared_error here - it's much slower
         return np.abs(y_true - y_pred)  # RMSE - possibly replace with MSE
 
@@ -74,17 +77,14 @@ def get_model(args, features, instances):
         return Regressor(Identity(), polynomial_fn, relevant_feature_map)
     # Select time window for each feature
     windows = [get_window(args) if fid in relevant_features else None for fid, _ in enumerate(features)]
+    for fid in relevant_features:
+        args.logger.info("Window for feature id %d: (%d, %d)" % (fid, windows[fid][0], windows[fid][1]))
     # Select operation to perform on features
     operation = args.rng.choice([Average, Max])(windows)
-    if args.model_type == constants.REGRESSOR:
-        # Get polynomial function over relevant features with linear and pairwise interaction terms
-        relevant_feature_map, polynomial_fn = gen_polynomial(args, relevant_features)
-        return Regressor(operation, polynomial_fn, relevant_feature_map)
-    # Model type: classifier
-    # TODO: allow interaction features for classifier
-    estimator = args.rng.choice(Classifier.estimators)
-    labels = args.rng.binomial(1, 0.5, size=len(instances))  # generate random labels
-    return Classifier(operation, estimator, instances, labels)  # fit estimator to random labels
+    # Select model
+    model_class = {constants.CLASSIFIER: Classifier, constants.REGRESSOR: Regressor}[args.model_type]
+    relevant_feature_map, polynomial_fn = gen_polynomial(args, relevant_features)
+    return model_class(operation, polynomial_fn, relevant_feature_map, instances)
 
 
 def get_window(args):
@@ -100,7 +100,6 @@ def get_window(args):
 def gen_polynomial(args, relevant_features):
     """Generate polynomial which decides the ground truth and noisy model"""
     # Note: using sympy to build function appears to be 1.5-2x slower than erstwhile raw numpy implementation (for linear terms)
-    # TODO: possibly negative coefficients
     sym_features = sympy.symbols(["x%d" % x for x in range(args.num_features)])
     relevant_feature_map = {}  # map of relevant feature sets to coefficients
     # Generate polynomial expression
@@ -138,6 +137,8 @@ def update_interaction_terms(args, relevant_features, relevant_feature_map, sym_
     interaction_pairs = args.rng.choice(potential_pairs_arr, size=num_interactions, replace=False)
     for interaction_pair in interaction_pairs:
         coefficient = args.rng.uniform()
+        if args.model_type == constants.CLASSIFIER:
+            coefficient *= args.rng.choice([-1, 1])  # Randomly flip sign
         relevant_feature_map[frozenset(interaction_pair)] = coefficient
         sym_polynomial_fn += coefficient * functools.reduce(lambda sym_x, y: sym_x * sym_features[y], interaction_pair, 1)
     return sym_polynomial_fn
@@ -157,6 +158,9 @@ def update_linear_terms(args, relevant_features, relevant_feature_map, sym_featu
     linear_features = sorted(relevant_features.difference(interaction_only_features))
     coefficients = np.zeros(args.num_features)
     coefficients[linear_features] = args.rng.uniform(size=len(linear_features))
+    if args.model_type == constants.CLASSIFIER:
+        # TODO: always flip sign randomly, even for regression
+        coefficients[linear_features] *= args.rng.choice([-1, 1], size=len(linear_features))  # Randomly flip sign
     for linear_feature in linear_features:
         relevant_feature_map[frozenset([linear_feature])] = coefficients[linear_feature]
     sym_polynomial_fn += coefficients.dot(sym_features)

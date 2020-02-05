@@ -53,7 +53,7 @@ def test_reproducible_classifier(tmpdir, data_regression):
     pass_args = cmd.split()[2:]
     with patch.object(sys, 'argv', pass_args):
         _, data, model = master.main()
-    labels = model.predict(data)
+    labels = model.predict(data, labels=True)
     data_regression.check(data.tostring() + labels.tostring())
 
 

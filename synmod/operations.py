@@ -14,6 +14,7 @@ class Operation(ABC):
     def operate(self, sequences):
         """Apply feature-wise operations to sequence data"""
         # TODO: possibly vectorize using masks for efficiency
+        # TODO: when perturbing a feature, other values do not need to be recomputed
         num_instances, num_features, _ = sequences.shape  # sequences: instances X features X timesteps
         matrix = np.zeros((num_instances, num_features))
         for fidx in range(num_features):

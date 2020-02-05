@@ -58,7 +58,6 @@ def pipeline(args):
     features = generate_features(args)
     instances = generate_instances(args, features)
     model = generate_model(args, features, instances)
-    # TODO: ensure that classification model does not have skewed labels
     return features, instances, model
 
 
