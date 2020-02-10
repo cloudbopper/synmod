@@ -1,7 +1,6 @@
 """Generator base class"""
 
 from abc import ABC
-from functools import partial
 
 import numpy as np
 from scipy.stats import bernoulli
@@ -49,7 +48,18 @@ class MarkovChain(Generator):
             rng = self._chain._rng
             self._p = rng.uniform(size=self._chain._n_states)
             if feature_type == CONTINUOUS:
-                self.sample = partial(rng.normal, rng.uniform(), rng.uniform() * 0.05)
+                mean = rng.uniform(0.1)
+                sd = rng.uniform(0.1) * 0.05
+                if self._chain._trends:
+                    if self._index == 0:
+                        pass  # Increase
+                    elif self._index == 1:
+                        mean = -mean  # Decrease
+                    elif self._index == 2:
+                        mean = 0  # Stay constant
+                    else:
+                        mean = rng.uniform(-1, 1)  # Random
+                self.sample = lambda: rng.normal(mean, sd)
             elif feature_type in {BINARY, CATEGORICAL, ORDINAL}:
                 self.sample = lambda: self._index
                 if feature_type == ORDINAL:
@@ -71,12 +81,21 @@ class MarkovChain(Generator):
         self._n_states = kwargs.get("n_states", self._rng.integers(2, 5, endpoint=True))
         if self._feature_type == BINARY:
             self._n_states = 2
+        self._trends = False  # If enabled, sampled values increase/decrease/stay constant according to trends corresponding to each state
+        self._init_value = self._rng.uniform(-1, 1)  # Initial value of Markov chain, used for trends
+        if self._feature_type == CONTINUOUS:
+            self._trends = self._rng.choice([True, False])
         self._states = [self.State(self, index) for index in range(self._n_states)]
 
     def sample(self, sequence_length):
         cur_state = self._rng.choice(self._states)  # initial state
         sequence = np.empty(sequence_length)
+        value = self._init_value  # TODO: what if value is re-initialized for every sequence sampled? (trends)
         for timestep in range(sequence_length):
-            sequence[timestep] = cur_state.sample()
+            if self._trends:
+                value += cur_state.sample()
+            else:
+                value = cur_state.sample()
+            sequence[timestep] = value
             cur_state = cur_state.transition()
         return sequence

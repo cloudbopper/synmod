@@ -52,6 +52,7 @@ class Classifier(Model):
     def loss(y_true, y_pred):
         """Logistic loss"""
         # TODO: 0-1 loss
+        # TODO: Handle case when y_pred components are 1 or 0 (due to very small/large sigmoid inputs)
         return -y_true * np.log(y_pred) - (1 - y_true) * np.log(1 - y_pred)  # Binary cross-entropy
 
 
