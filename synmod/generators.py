@@ -10,9 +10,10 @@ from synmod.constants import CONTINUOUS, BINARY, CATEGORICAL, ORDINAL
 
 class Generator(ABC):
     """Generator base class"""
-    def __init__(self, rng, feature_type):
+    def __init__(self, rng, feature_type, window):
         self._rng = rng
         self._feature_type = feature_type
+        self._window = window
 
     def sample(self, sequence_length):
         """Sample sequence of given length from generator"""
@@ -20,8 +21,8 @@ class Generator(ABC):
 
 class BernoulliProcess(Generator):
     """Bernoulli process generator"""
-    def __init__(self, rng, feature_type, **kwargs):
-        super().__init__(rng, feature_type)
+    def __init__(self, rng, feature_type, window, **kwargs):
+        super().__init__(rng, feature_type, window)
         self._p = kwargs.get("p", self._rng.uniform(0.01, 0.99))
 
     def sample(self, sequence_length):
@@ -76,8 +77,8 @@ class MarkovChain(Generator):
             """Transition to next state"""
             return self._chain._rng.choice(self._chain._states, p=self._p)
 
-    def __init__(self, rng, feature_type, **kwargs):
-        super().__init__(rng, feature_type)
+    def __init__(self, rng, feature_type, window, **kwargs):
+        super().__init__(rng, feature_type, window)
         self._n_states = kwargs.get("n_states", self._rng.integers(2, 5, endpoint=True))
         if self._feature_type == BINARY:
             self._n_states = 2

@@ -77,7 +77,7 @@ def get_model(args, features, instances):
         relevant_feature_map, polynomial_fn = gen_polynomial(args, relevant_features)
         return Regressor(Identity(), polynomial_fn, relevant_feature_map)
     # Select time window for each feature
-    windows = [get_window(args) if fid in relevant_features else None for fid, _ in enumerate(features)]
+    windows = [feature.window if fid in relevant_features else None for fid, feature in enumerate(features)]
     for fid in relevant_features:
         args.logger.info("Window for feature id %d: (%d, %d)" % (fid, windows[fid][0], windows[fid][1]))
     # Select operation to perform on features
