@@ -39,6 +39,11 @@ def main():
     temporal = parser.add_argument_group("Temporal synthesis parameters")
     temporal.add_argument("-sequence_length", help="Length of regularly sampled sequence",
                           type=int, required=True)
+    temporal.add_argument("-sequences_independent_of_windows", help="If enabled, Markov chain sequence data doesn't dependent on timesteps being"
+                          " inside vs. outside the window (default random)", action="store_true", dest="window_independent")
+    temporal.add_argument("-sequences_dependent_on_windows", help="If enabled, Markov chain sequence data depends on timesteps being"
+                          " inside vs. outside the window (default random)", action="store_false", dest="window_independent")
+    temporal.set_defaults(window_independent=None)
     # TODO: model type should be common to both synthesis types
     temporal.add_argument("-model_type", help="type of model (classifier/regressor) - default random",
                           choices=[constants.CLASSIFIER, constants.REGRESSOR], default=None)
@@ -47,8 +52,10 @@ def main():
         os.makedirs(args.output_dir)
     args.rng = np.random.default_rng(args.seed)
     args.logger = get_logger(__name__, "%s/synmod.log" % args.output_dir)
-    if not args.model_type:
+    if args.model_type is None:
         args.model_type = args.rng.choice([constants.CLASSIFIER, constants.REGRESSOR])
+    if args.window_independent is None:
+        args.window_independent = args.rng.choice([True, False])
     return pipeline(args)
 
 

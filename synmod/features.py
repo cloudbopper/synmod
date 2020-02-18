@@ -52,34 +52,34 @@ class TemporalFeature(ABC):
 
 class BinaryFeature(TemporalFeature):
     """Binary feature"""
-    def __init__(self, name, rng, sequence_length):
+    def __init__(self, name, rng, sequence_length, **kwargs):
         super().__init__(name, rng, sequence_length)
         generator_class = rng.choice([BernoulliProcess, MarkovChain])
-        self._generator = generator_class(rng, BINARY, self.window)
+        self._generator = generator_class(rng, BINARY, self.window, **kwargs)
 
 
 class CategoricalFeature(TemporalFeature):
     """Categorical feature"""
-    def __init__(self, name, rng, sequence_length):
+    def __init__(self, name, rng, sequence_length, **kwargs):
         super().__init__(name, rng, sequence_length)
         generator_class = rng.choice([MarkovChain])
-        self._generator = generator_class(rng, CATEGORICAL, self.window)
+        self._generator = generator_class(rng, CATEGORICAL, self.window, **kwargs)
 
 
 class OrdinalFeature(TemporalFeature):
     """Ordinal feature"""
-    def __init__(self, name, rng, sequence_length):
+    def __init__(self, name, rng, sequence_length, **kwargs):
         super().__init__(name, rng, sequence_length)
         generator_class = rng.choice([MarkovChain])
-        self._generator = generator_class(rng, ORDINAL, self.window)
+        self._generator = generator_class(rng, ORDINAL, self.window, **kwargs)
 
 
 class ContinuousFeature(TemporalFeature):
     """Continuous feature"""
-    def __init__(self, name, rng, sequence_length):
+    def __init__(self, name, rng, sequence_length, **kwargs):
         super().__init__(name, rng, sequence_length)
         generator_class = rng.choice([MarkovChain])
-        self._generator = generator_class(rng, CONTINUOUS, self.window)
+        self._generator = generator_class(rng, CONTINUOUS, self.window, **kwargs)
 
 
 def get_feature(args, name):
@@ -88,4 +88,5 @@ def get_feature(args, name):
         return StaticBinaryFeature(name, args.rng)
     feature_class = args.rng.choice([BinaryFeature, CategoricalFeature, OrdinalFeature, ContinuousFeature],
                                     p=[1/6, 1/6, 1/6, 1/2])  # noqa: E226
-    return feature_class(name, args.rng, args.sequence_length)
+    kwargs = {"window_independent": args.window_independent}
+    return feature_class(name, args.rng, args.sequence_length, **kwargs)
