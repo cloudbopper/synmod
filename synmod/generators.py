@@ -5,7 +5,7 @@ from abc import ABC
 import numpy as np
 from scipy.stats import bernoulli
 
-from synmod.constants import CONTINUOUS, BINARY, CATEGORICAL, ORDINAL
+from synmod.constants import CONTINUOUS, BINARY, CATEGORICAL
 
 IN_WINDOW = "in-window"
 OUT_WINDOW = "out-window"
@@ -67,13 +67,8 @@ class MarkovChain(Generator):
                     else:
                         mean = rng.uniform(-1, 1)  # Random
                 self.sample = lambda: rng.normal(mean, sd)
-            elif feature_type in {BINARY, CATEGORICAL, ORDINAL}:
+            elif feature_type in {BINARY, CATEGORICAL}:
                 self.sample = lambda: self._index
-                if feature_type == ORDINAL:
-                    # Dissallow transitions to non-consecutive states:
-                    mask = np.zeros(n_states)
-                    mask[max(0, self._index - 1): min(n_states, self._index + 2)] = 1
-                    self._p *= mask
             else:
                 raise ValueError("Feature type invalid: {0}".format(feature_type))
             self._p /= self._p.sum()  # normalize transition probabilities

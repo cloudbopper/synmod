@@ -8,7 +8,6 @@ DISCRETE = "discrete"
 CONTINUOUS = "continuous"
 BINARY = "binary"
 CATEGORICAL = "categorical"
-ORDINAL = "ordinal"
 
 # Models
 CLASSIFIER = "classifier"

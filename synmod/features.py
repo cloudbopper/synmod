@@ -2,7 +2,7 @@
 
 from abc import ABC
 
-from synmod.constants import BINARY, CATEGORICAL, ORDINAL, CONTINUOUS, STATIC
+from synmod.constants import BINARY, CATEGORICAL, CONTINUOUS, STATIC
 from synmod.generators import BernoulliProcess, MarkovChain
 
 
@@ -66,14 +66,6 @@ class CategoricalFeature(TemporalFeature):
         self._generator = generator_class(rng, CATEGORICAL, self.window, **kwargs)
 
 
-class OrdinalFeature(TemporalFeature):
-    """Ordinal feature"""
-    def __init__(self, name, rng, sequence_length, **kwargs):
-        super().__init__(name, rng, sequence_length)
-        generator_class = rng.choice([MarkovChain])
-        self._generator = generator_class(rng, ORDINAL, self.window, **kwargs)
-
-
 class ContinuousFeature(TemporalFeature):
     """Continuous feature"""
     def __init__(self, name, rng, sequence_length, **kwargs):
@@ -86,7 +78,7 @@ def get_feature(args, name):
     """Return randomly selected feature"""
     if args.synthesis_type == STATIC:
         return StaticBinaryFeature(name, args.rng)
-    feature_class = args.rng.choice([BinaryFeature, CategoricalFeature, OrdinalFeature, ContinuousFeature],
-                                    p=[1/6, 1/6, 1/6, 1/2])  # noqa: E226
+    feature_class = args.rng.choice([BinaryFeature, CategoricalFeature, ContinuousFeature],
+                                    p=[1/4, 1/4, 1/2])  # noqa: E226
     kwargs = {"window_independent": args.window_independent}
     return feature_class(name, args.rng, args.sequence_length, **kwargs)
