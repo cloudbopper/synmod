@@ -32,11 +32,11 @@ class TemporalFeature(ABC):
     def __init__(self, name, rng, sequence_length):
         self.name = name
         self.window = self.get_window(rng, sequence_length)
-        self._generator = None
+        self.generator = None
 
     def sample(self, *args, **kwargs):
         """Sample sequence from generator"""
-        return self._generator.sample(*args, **kwargs)
+        return self.generator.sample(*args, **kwargs)
 
     @staticmethod
     def get_window(rng, sequence_length):
@@ -55,7 +55,7 @@ class BinaryFeature(TemporalFeature):
     def __init__(self, name, rng, sequence_length, **kwargs):
         super().__init__(name, rng, sequence_length)
         generator_class = rng.choice([BernoulliProcess, MarkovChain])
-        self._generator = generator_class(rng, BINARY, self.window, **kwargs)
+        self.generator = generator_class(rng, BINARY, self.window, **kwargs)
 
 
 class CategoricalFeature(TemporalFeature):
@@ -63,7 +63,7 @@ class CategoricalFeature(TemporalFeature):
     def __init__(self, name, rng, sequence_length, **kwargs):
         super().__init__(name, rng, sequence_length)
         generator_class = rng.choice([MarkovChain])
-        self._generator = generator_class(rng, CATEGORICAL, self.window, **kwargs)
+        self.generator = generator_class(rng, CATEGORICAL, self.window, **kwargs)
 
 
 class ContinuousFeature(TemporalFeature):
@@ -71,7 +71,7 @@ class ContinuousFeature(TemporalFeature):
     def __init__(self, name, rng, sequence_length, **kwargs):
         super().__init__(name, rng, sequence_length)
         generator_class = rng.choice([MarkovChain])
-        self._generator = generator_class(rng, CONTINUOUS, self.window, **kwargs)
+        self.generator = generator_class(rng, CONTINUOUS, self.window, **kwargs)
 
 
 def get_feature(args, name):
