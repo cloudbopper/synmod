@@ -1,6 +1,7 @@
 """Model generation"""
 
 from abc import ABC
+from collections import namedtuple
 import functools
 import itertools
 
@@ -12,15 +13,16 @@ from sympy.utilities.lambdify import lambdify
 from synmod import constants
 from synmod.operations import Average, Max, Identity
 
+Polynomial = namedtuple("Polynomial", ["relevant_feature_map", "sym_polynomial_fn", "polynomial_fn"])
+
 
 # pylint: disable = invalid-name
 class Model(ABC):
     """Model base class"""
-    def __init__(self, operation, polynomial_fn, relevant_feature_map, X=None):
+    def __init__(self, operation, polynomial, X=None):
         # pylint: disable = unused-argument
         self._operation = operation  # operation to perform aggregation over time and generate feature vector
-        self._polynomial_fn = polynomial_fn  # polynomial over aggregated feature vector
-        self.relevant_feature_map = relevant_feature_map  # map of feature id's to polynomial coefficients
+        self.relevant_feature_map, self.sym_polynomial_fn, self._polynomial_fn = polynomial
 
     def predict(self, X, **kwargs):
         """Predict outputs on input instances"""
@@ -32,8 +34,8 @@ class Model(ABC):
 
 class Classifier(Model):
     """Classification model"""
-    def __init__(self, operation, polynomial_fn, relevant_feature_map, X):
-        super().__init__(operation, polynomial_fn, relevant_feature_map)
+    def __init__(self, operation, polynomial, X):
+        super().__init__(operation, polynomial)
         assert X is not None
         self._threshold = np.median(self._polynomial_fn(self._operation.operate(X).transpose()))
 
@@ -73,9 +75,9 @@ def get_model(args, features, instances):
     """Generate and return model"""
     # Select relevant features
     relevant_features = get_relevant_features(args)
+    polynomial = gen_polynomial(args, relevant_features)
     if args.synthesis_type == constants.STATIC:
-        relevant_feature_map, polynomial_fn = gen_polynomial(args, relevant_features)
-        return Regressor(Identity(), polynomial_fn, relevant_feature_map)
+        return Regressor(Identity(), polynomial)
     # Select time window for each feature
     windows = [feature.window if fid in relevant_features else None for fid, feature in enumerate(features)]
     for fid in relevant_features:
@@ -84,8 +86,7 @@ def get_model(args, features, instances):
     operation = args.rng.choice([Average, Max])(windows)
     # Select model
     model_class = {constants.CLASSIFIER: Classifier, constants.REGRESSOR: Regressor}[args.model_type]
-    relevant_feature_map, polynomial_fn = gen_polynomial(args, relevant_features)
-    return model_class(operation, polynomial_fn, relevant_feature_map, instances)
+    return model_class(operation, polynomial, instances)
 
 
 def get_window(args):
@@ -112,7 +113,7 @@ def gen_polynomial(args, relevant_features):
     args.logger.info("Ground truth polynomial:\ny = %s" % sym_polynomial_fn)
     # Generate model expression
     polynomial_fn = lambdify([sym_features], sym_polynomial_fn, "numpy")
-    return relevant_feature_map, polynomial_fn
+    return Polynomial(relevant_feature_map, sym_polynomial_fn, polynomial_fn)
 
 
 def get_relevant_features(args):
