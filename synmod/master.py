@@ -44,10 +44,15 @@ def main():
     temporal.add_argument("-sequences_dependent_on_windows", help="If enabled, Markov chain sequence data depends on timesteps being"
                           " inside vs. outside the window (default random)", action="store_false", dest="window_independent")
     temporal.set_defaults(window_independent=None)
-    # TODO: model type should be common to both synthesis types
+    # TODO: model_type should be common to both synthesis types
     temporal.add_argument("-model_type", help="type of model (classifier/regressor) - default random",
                           choices=[constants.CLASSIFIER, constants.REGRESSOR], default=None)
     args = parser.parse_args()
+    return pipeline(args)
+
+
+def config(args):
+    """Configure arguments before execution"""
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
     args.rng = np.random.default_rng(args.seed)
@@ -56,12 +61,12 @@ def main():
         args.model_type = args.rng.choice([constants.CLASSIFIER, constants.REGRESSOR])
     if args.window_independent is None:
         args.window_independent = args.rng.choice([True, False])
-    return pipeline(args)
 
 
 def pipeline(args):
     """Pipeline"""
-    args.logger.info("Begin generating sequence data with args with args: %s" % args)
+    config(args)
+    args.logger.info("Begin generating sequence data with args: %s" % args)
     features = generate_features(args)
     instances = generate_instances(args, features)
     model = generate_model(args, features, instances)

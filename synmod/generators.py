@@ -1,14 +1,17 @@
 """Generator base class"""
 
 from abc import ABC
+from collections import namedtuple
 
 import numpy as np
+import graphviz
 from scipy.stats import bernoulli
 
 from synmod.constants import CONTINUOUS, BINARY, CATEGORICAL
 
 IN_WINDOW = "in-window"
 OUT_WINDOW = "out-window"
+SummaryStats = namedtuple("SummaryStats", ["mean", "sd"])
 
 
 class Generator(ABC):
@@ -21,6 +24,9 @@ class Generator(ABC):
     def sample(self, sequence_length):
         """Sample sequence of given length from generator"""
 
+    def graph(self):
+        """Graph representation of generator (dot file)"""
+
 
 class BernoulliProcess(Generator):
     """Bernoulli process generator"""
@@ -30,6 +36,13 @@ class BernoulliProcess(Generator):
 
     def sample(self, sequence_length):
         return bernoulli.rvs(p=self._p, size=sequence_length, random_state=self._rng)
+
+    def graph(self):
+        graph = graphviz.Digraph()
+        graph.attr(label="Bernoulli process\n\n", labelloc="t")
+        graph.node("0", label="P(X = 1) = %1.4f" % self._p)
+        graph.edge("0", "0", " 1.0")
+        return graph
 
 
 # pylint: disable = invalid-name, pointless-statement
@@ -46,6 +59,7 @@ class MarkovChain(Generator):
             self._p = None  # Transition probabilities from state
             self._states = None  # States to transition to
             self.sample = None  # Function to sample from state distribution
+            self._summary_stats = SummaryStats(None, None)  # Only populated for continuous variables:
 
         def gen_distributions(self):
             """Generate state transition and sampling distributions"""
@@ -66,6 +80,7 @@ class MarkovChain(Generator):
                         mean = 0  # Stay constant
                     else:
                         mean = rng.uniform(-1, 1)  # Random
+                self._summary_stats = SummaryStats(mean, sd)
                 self.sample = lambda: rng.normal(mean, sd)
             elif feature_type in {BINARY, CATEGORICAL}:
                 self.sample = lambda: self._index
@@ -124,3 +139,29 @@ class MarkovChain(Generator):
             # Set next state
             cur_state = cur_state.transition()
         return sequence
+
+    def graph(self):
+        graph = graphviz.Digraph()
+        label = "Markov chain\nSequence dependence on windows: %s\nFeature type: %s" % (not self._window_independent, self._feature_type)
+        if self._trends:
+            label += "\nTrends: True\nInitial value: %1.4f" % self._init_value
+        label += "\n\n"
+        graph.attr(label=label, labelloc="t")
+        clusters = [self._in_window_states]
+        clabels = [""]
+        if not self._window_independent:
+            clusters.append(self._out_window_states)
+            clabels = ["In-window states", "Out-of-window states"]
+        for cidx, cluster in enumerate(clusters):
+            with graph.subgraph(name="cluster_%d" % cidx) as cgraph:
+                cgraph.attr(label=clabels[cidx])
+                for state in cluster:
+                    # pylint: disable = protected-access
+                    name = str(state._index)
+                    label = "State %s" % name
+                    if self._feature_type == CONTINUOUS:
+                        label += "\nMean: %1.4f\nSD: %1.4f" % (state._summary_stats.mean, state._summary_stats.sd)
+                    cgraph.node(name, label=label)
+                    for oidx, ostate in enumerate(cluster):
+                        cgraph.edge(name, str(ostate._index), label=" %1.4f\t\n" % state._p[oidx])
+        return graph
