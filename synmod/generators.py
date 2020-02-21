@@ -128,7 +128,7 @@ class MarkovChain(Generator):
                 # Reset initial state in/out of window
                 if timestep == left:
                     cur_state = self._rng.choice(self._in_window_states)
-                elif timestep == right:
+                elif timestep == right + 1:
                     cur_state = self._rng.choice(self._out_window_states)
             # Get value from state
             if self._trends:
@@ -142,7 +142,7 @@ class MarkovChain(Generator):
 
     def graph(self):
         graph = graphviz.Digraph()
-        label = "Markov chain\nSequence dependence on windows: %s\nFeature type: %s" % (not self._window_independent, self._feature_type)
+        label = "Markov chain\nFeature type: %s" % self._feature_type
         if self._trends:
             label += "\nTrends: True\nInitial value: %1.4f" % self._init_value
         label += "\n\n"
