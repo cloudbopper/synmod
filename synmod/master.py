@@ -3,6 +3,7 @@
 # pylint: disable = fixme, unused-argument, unused-variable, unused-import
 
 import argparse
+from distutils.util import strtobool
 import os
 
 import numpy as np
@@ -32,17 +33,15 @@ def main():
     common.add_argument("-num_interactions", help="number of pairwise in aggregation model (default 0)",
                         type=int, default=0)
     common.add_argument("-include_interaction_only_features", help="include interaction-only features in aggregation model"
-                        " in addition to linear + interaction features (excluded by default)", action="store_true")
+                        " in addition to linear + interaction features (excluded by default)", type=strtobool)
     common.add_argument("-seed", help="Seed for RNG, random by default",
                         default=None, type=int)
     # Temporal synthesis arguments
     temporal = parser.add_argument_group("Temporal synthesis parameters")
     temporal.add_argument("-sequence_length", help="Length of regularly sampled sequence",
                           type=int, required=True)
-    temporal.add_argument("-sequences_independent_of_windows", help="If enabled, Markov chain sequence data doesn't dependent on timesteps being"
-                          " inside vs. outside the window (default random)", action="store_true", dest="window_independent")
-    temporal.add_argument("-sequences_dependent_on_windows", help="If enabled, Markov chain sequence data depends on timesteps being"
-                          " inside vs. outside the window (default random)", action="store_false", dest="window_independent")
+    temporal.add_argument("-sequences_independent_of_windows", help="If enabled, Markov chain sequence data doesn't depend on timesteps being"
+                          " inside vs. outside the window (default random)", type=strtobool, dest="window_independent")
     temporal.set_defaults(window_independent=None)
     # TODO: model_type should be common to both synthesis types
     temporal.add_argument("-model_type", help="type of model (classifier/regressor) - default random",
