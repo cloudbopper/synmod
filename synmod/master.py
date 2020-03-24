@@ -3,6 +3,7 @@
 # pylint: disable = fixme, unused-argument, unused-variable, unused-import
 
 import argparse
+import pickle
 from distutils.util import strtobool
 import os
 
@@ -36,6 +37,8 @@ def main():
                         " in addition to linear + interaction features (excluded by default)", type=strtobool)
     common.add_argument("-seed", help="Seed for RNG, random by default",
                         default=None, type=int)
+    common.add_argument("-write_outputs", help="flag to enable writing outputs (alternative to using python API)",
+                        type=strtobool)
     # Temporal synthesis arguments
     temporal = parser.add_argument_group("Temporal synthesis parameters")
     temporal.add_argument("-sequence_length", help="Length of regularly sampled sequence",
@@ -69,6 +72,7 @@ def pipeline(args):
     features = generate_features(args)
     instances = generate_instances(args, features)
     model = generate_model(args, features, instances)
+    write_outputs(args, features, instances, model)
     return features, instances, model
 
 
@@ -98,6 +102,16 @@ def generate_model(args, features, instances):
     """Generate model"""
     args.rng = np.random.default_rng(args.seed)  # Reset RNG for consistent model independent of instances
     return M.get_model(args, features, instances)
+
+
+def write_outputs(args, features, model, instances):
+    """Write outputs to file"""
+    if not args.write_outputs:
+        return
+    for filename, data in {constants.FEATURES_FILENAME: features, constants.MODEL_FILENAME: model}.items():
+        with open(filename, "wb") as output_file:
+            pickle.dump(data, output_file)
+    np.save(constants.INSTANCES_FILENAME, instances)
 
 
 def generate_labels(args, model, instances):
