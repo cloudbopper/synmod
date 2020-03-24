@@ -18,6 +18,6 @@ STATIC = "static"
 TEMPORAL = "temporal"
 
 # Output files
-FEATURES_FILENAME = "features.pkl"
-MODEL_FILENAME = "model.pkl"
+FEATURES_FILENAME = "features.cpkl"
+MODEL_FILENAME = "model.cpkl"
 INSTANCES_FILENAME = "instances.npy"

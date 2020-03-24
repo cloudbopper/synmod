@@ -3,10 +3,10 @@
 # pylint: disable = fixme, unused-argument, unused-variable, unused-import
 
 import argparse
-import pickle
 from distutils.util import strtobool
 import os
 
+import cloudpickle
 import numpy as np
 
 from synmod import constants
@@ -104,14 +104,15 @@ def generate_model(args, features, instances):
     return M.get_model(args, features, instances)
 
 
-def write_outputs(args, features, model, instances):
+def write_outputs(args, features, instances, model):
     """Write outputs to file"""
     if not args.write_outputs:
         return
-    for filename, data in {constants.FEATURES_FILENAME: features, constants.MODEL_FILENAME: model}.items():
-        with open(filename, "wb") as output_file:
-            pickle.dump(data, output_file)
-    np.save(constants.INSTANCES_FILENAME, instances)
+    with open(f"{args.output_dir}/{constants.FEATURES_FILENAME}", "wb") as features_file:
+        cloudpickle.dump(features, features_file)
+    np.save(f"{args.output_dir}/{constants.INSTANCES_FILENAME}", instances)
+    with open(f"{args.output_dir}/{constants.MODEL_FILENAME}", "wb") as model_file:
+        cloudpickle.dump(model, model_file)
 
 
 def generate_labels(args, model, instances):
