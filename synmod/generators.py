@@ -39,7 +39,8 @@ class BernoulliProcess(Generator):
 
     def graph(self):
         graph = graphviz.Digraph()
-        graph.attr(label="Bernoulli process\n\n", labelloc="t")
+        left, right = self._window
+        graph.attr(label=f"Bernoulli process\nWindow: [{left}, {right}]\n\n", labelloc="t")
         graph.node("0", label="P(X = 1) = %1.4f" % self._p)
         graph.edge("0", "0", " 1.0")
         return graph
@@ -145,7 +146,8 @@ class MarkovChain(Generator):
         label = "Markov chain\nFeature type: %s" % self._feature_type
         if self._trends:
             label += "\nTrends: True\nInitial value: %1.4f" % self._init_value
-        label += "\n\n"
+        left, right = self._window
+        label += f"\nWindow: [{left}, {right}]\n\n"
         graph.attr(label=label, labelloc="t")
         clusters = [self._in_window_states]
         clabels = [""]
