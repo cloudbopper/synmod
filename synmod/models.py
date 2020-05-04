@@ -22,7 +22,13 @@ class Model(ABC):
     def __init__(self, operation, polynomial, X=None):
         # pylint: disable = unused-argument
         self._operation = operation  # operation to perform aggregation over time and generate feature vector
+        # relevant_feature-map: Mapping from frozensets containing one or more feature names to their polynomial coefficients
         self.relevant_feature_map, self.sym_polynomial_fn, self._polynomial_fn = polynomial
+
+    @property
+    def relevant_feature_names(self):
+        """Convenience function to get feature names"""
+        return list(functools.reduce(set.union, self.relevant_feature_map, set()))
 
     def predict(self, X, **kwargs):
         """Predict outputs on input instances"""
