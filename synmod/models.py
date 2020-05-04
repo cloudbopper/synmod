@@ -89,7 +89,8 @@ def get_model(args, features, instances):
     for fid in relevant_features:
         args.logger.info("Window for feature id %d: (%d, %d)" % (fid, windows[fid][0], windows[fid][1]))
     # Select operation to perform on features
-    operation = args.rng.choice([Average, Max])(windows)
+    operation = args.rng.choice([Average, Max])()
+    operation.set_windows(windows)
     # Select model
     model_class = {constants.CLASSIFIER: Classifier, constants.REGRESSOR: Regressor}[args.model_type]
     return model_class(operation, polynomial, instances)
