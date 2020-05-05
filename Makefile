@@ -57,7 +57,10 @@ lint: ## check style with pylint/flake8
 	doc8 docs README.rst
 
 test: ## run tests quickly with the default Python
-	py.test
+	pytest -rA tests
+
+test-update-golds: ## run tests and update gold files (two passes required for hierarchical analysis tests)
+	pytest -rA tests --force-regen
 
 test-all: ## run tests on every Python version with tox
 	tox

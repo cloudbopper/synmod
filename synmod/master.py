@@ -69,19 +69,36 @@ def pipeline(args):
     """Pipeline"""
     config(args)
     args.logger.info("Begin generating sequence data with args: %s" % args)
-    features = generate_features(args)
+    aggregation_fn = M.get_aggregation_fn(args)
+    features = generate_features(args, aggregation_fn)
     instances = generate_instances(args, features)
-    model = generate_model(args, features, instances)
+    model = M.get_model(args, features, instances, aggregation_fn)
     write_outputs(args, features, instances, model)
     return features, instances, model
 
 
-def generate_features(args):
+def generate_features(args, aggregation_fn):
     """Generate features"""
+    def check_feature_variance(args, feature, aggregation_fn):
+        """Check variance of feature's raw/temporally aggregated values"""
+        instances = np.array([feature.sample(args.sequence_length) for _ in range(constants.VARIANCE_TEST_COUNT)])
+        aggregated = instances
+        if args.synthesis_type == constants.TEMPORAL:
+            left, right = feature.window
+            aggregated = aggregation_fn.operate_on_feature(instances[:, left: right + 1])
+        return np.var(aggregated) > 1e-10
+
     # TODO: allow across-feature interactions
-    features = []
-    for fid in range(args.num_features):
-        features.append(F.get_feature(args, str(fid)))
+    features = [None] * args.num_features
+    fid = 0
+    while fid < args.num_features:
+        feature = F.get_feature(args, str(fid), aggregation_fn)
+        if not check_feature_variance(args, feature, aggregation_fn):
+            # Reject feature if its raw/aggregated values have low variance
+            args.logger.info(f"Rejecting feature {feature.__class__} due to low variance")
+            continue
+        features[fid] = feature
+        fid += 1
     return features
 
 
@@ -96,12 +113,6 @@ def generate_instances(args, features):
         for sid in range(args.num_instances):
             instances[sid] = [feature.sample(args.sequence_length) for feature in features]
     return instances
-
-
-def generate_model(args, features, instances):
-    """Generate model"""
-    args.rng = np.random.default_rng(args.seed)  # Reset RNG for consistent model independent of instances
-    return M.get_model(args, features, instances)
 
 
 def write_outputs(args, features, instances, model):

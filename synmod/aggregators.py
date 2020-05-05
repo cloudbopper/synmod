@@ -1,12 +1,12 @@
-"""Model operations"""
+"""Feature temporal aggregation functions"""
 
 from abc import ABC
 
 import numpy as np
 
 
-class Operation(ABC):
-    """Operation base class"""
+class Aggregator(ABC):
+    """Aggregator base class"""
     def __init__(self, operator=None):
         self._operator = operator  # Feature temporal aggregation function
         self._windows = None
@@ -34,19 +34,19 @@ class Operation(ABC):
         return matrix
 
 
-class Average(Operation):
+class Average(Aggregator):
     """Computes average of inputs"""
     def __init__(self):
         super().__init__(np.average)
 
 
-class Max(Operation):
+class Max(Aggregator):
     """Computes max of inputs"""
     def __init__(self):
         super().__init__(np.max)
 
 
-class Identity(Operation):
+class Identity(Aggregator):
     """Returns the input as-is, does not aggregate (used for static data)"""
     def operate(self, sequences):
         return sequences

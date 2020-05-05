@@ -2,6 +2,7 @@
 
 from abc import ABC
 from collections import namedtuple
+from copy import copy
 import functools
 import itertools
 
@@ -11,7 +12,7 @@ import sympy
 from sympy.utilities.lambdify import lambdify
 
 from synmod import constants
-from synmod.operations import Average, Max, Identity
+from synmod.aggregators import Average, Max, Identity
 
 Polynomial = namedtuple("Polynomial", ["relevant_feature_map", "sym_polynomial_fn", "polynomial_fn"])
 
@@ -19,9 +20,9 @@ Polynomial = namedtuple("Polynomial", ["relevant_feature_map", "sym_polynomial_f
 # pylint: disable = invalid-name
 class Model(ABC):
     """Model base class"""
-    def __init__(self, operation, polynomial, X=None):
+    def __init__(self, aggregator, polynomial, X=None):
         # pylint: disable = unused-argument
-        self._operation = operation  # operation to perform aggregation over time and generate feature vector
+        self._aggregator = aggregator  # object to perform aggregation over time and generate feature vector
         # relevant_feature-map: Mapping from frozensets containing one or more feature names to their polynomial coefficients
         self.relevant_feature_map, self.sym_polynomial_fn, self._polynomial_fn = polynomial
 
@@ -40,10 +41,10 @@ class Model(ABC):
 
 class Classifier(Model):
     """Classification model"""
-    def __init__(self, operation, polynomial, X):
-        super().__init__(operation, polynomial)
+    def __init__(self, aggregator, polynomial, X):
+        super().__init__(aggregator, polynomial)
         assert X is not None
-        self._threshold = np.median(self._polynomial_fn(self._operation.operate(X).transpose()))
+        self._threshold = np.median(self._polynomial_fn(self._aggregator.operate(X).transpose()))
 
     def predict(self, X, **kwargs):
         """
@@ -51,7 +52,7 @@ class Classifier(Model):
         thresholding, then applying a sigmoid. If 'labels' is asserted, return output labels
         """
         labels = kwargs.get("labels", False)
-        values = expit(self._polynomial_fn(self._operation.operate(X).transpose()) - self._threshold)  # Sigmoid output
+        values = expit(self._polynomial_fn(self._aggregator.operate(X).transpose()) - self._threshold)  # Sigmoid output
         if labels:
             values = (values > 0.5).astype(np.int32)
         return values
@@ -68,7 +69,7 @@ class Regressor(Model):
     """Regression model"""
     def predict(self, X, **kwargs):
         """Predict outputs on instances in X by aggregating features over time and applying a polynomial"""
-        return self._polynomial_fn(self._operation.operate(X).transpose())
+        return self._polynomial_fn(self._aggregator.operate(X).transpose())
 
     @staticmethod
     def loss(y_true, y_pred):
@@ -77,23 +78,30 @@ class Regressor(Model):
         return np.abs(y_true - y_pred)  # RMSE - possibly replace with MSE
 
 
-def get_model(args, features, instances):
+def get_aggregation_fn(args):
+    """Select temporal aggregation function"""
+    aggregation_fn = Identity() if args.synthesis_type == constants.STATIC else args.rng.choice([Average, Max])()
+    args.logger.info(f"Feature aggregation function: {aggregation_fn.__class__}")
+    return aggregation_fn
+
+
+def get_model(args, features, instances, aggregation_fn):
     """Generate and return model"""
+    args = copy(args)
+    args.rng = np.random.default_rng(args.seed)  # Reset RNG for consistent model independent of instances
     # Select relevant features
     relevant_features = get_relevant_features(args)
     polynomial = gen_polynomial(args, relevant_features)
     if args.synthesis_type == constants.STATIC:
-        return Regressor(Identity(), polynomial)
+        return Regressor(aggregation_fn, polynomial)
     # Select time window for each feature
     windows = [feature.window if fid in relevant_features else None for fid, feature in enumerate(features)]
     for fid in relevant_features:
         args.logger.info("Window for feature id %d: (%d, %d)" % (fid, windows[fid][0], windows[fid][1]))
-    # Select operation to perform on features
-    operation = args.rng.choice([Average, Max])()
-    operation.set_windows(windows)
+    aggregation_fn.set_windows(windows)
     # Select model
     model_class = {constants.CLASSIFIER: Classifier, constants.REGRESSOR: Regressor}[args.model_type]
-    return model_class(operation, polynomial, instances)
+    return model_class(aggregation_fn, polynomial, instances)
 
 
 def get_window(args):
