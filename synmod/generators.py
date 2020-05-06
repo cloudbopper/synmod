@@ -7,7 +7,7 @@ import numpy as np
 import graphviz
 from scipy.stats import bernoulli
 
-from synmod.constants import CONTINUOUS, BINARY, CATEGORICAL
+from synmod.constants import CONTINUOUS
 
 IN_WINDOW = "in-window"
 OUT_WINDOW = "out-window"
@@ -33,16 +33,31 @@ class BernoulliProcess(Generator):
     def __init__(self, rng, feature_type, window, **kwargs):
         super().__init__(rng, feature_type, window)
         self._p = kwargs.get("p", self._rng.uniform(0.01, 0.99))
+        self._window_independent = kwargs.get("window_independent", True)  # Sampled value independent of window location
 
     def sample(self, sequence_length):
-        return bernoulli.rvs(p=self._p, size=sequence_length, random_state=self._rng)
+        sequence = bernoulli.rvs(p=self._p, size=sequence_length, random_state=self._rng)
+        if not self._window_independent:
+            left, right = self._window
+            sequence[left: right + 1] = bernoulli.rvs(p=(1 - self._p), size=(right - left + 1), random_state=self._rng)
+        return sequence
 
     def graph(self):
         graph = graphviz.Digraph()
         left, right = self._window
         graph.attr(label=f"Bernoulli process\nWindow: [{left}, {right}]\n\n", labelloc="t")
-        graph.node("0", label="P(X = 1) = %1.4f" % self._p)
-        graph.edge("0", "0", " 1.0")
+        cnames = ["0"]
+        cprobs = [self._p]
+        clabels = [""]
+        if not self._window_independent:
+            cnames.append("1")
+            cprobs.append(1 - self._p)
+            clabels = ["In-window state", "Out-of-window state"]
+        for cidx, cname in enumerate(cnames):
+            with graph.subgraph(name=f"cluster_{cidx}") as cgraph:
+                cgraph.attr(label=clabels[cidx])
+                cgraph.node(cname, label="P(X = 1) = %1.4f" % cprobs[cidx])
+                cgraph.edge(cname, cname, " 1.0")
         return graph
 
 
@@ -52,11 +67,12 @@ class MarkovChain(Generator):
 
     class State():
         """Markov chain state"""
-        # pylint: disable = protected-access
+        # pylint: disable = protected-access, too-many-instance-attributes
         def __init__(self, chain, index, state_type):
             self._chain = chain  # Parent Markov chain
             self._index = index  # state identifier
             self._state_type = state_type  # state type - in-window vs. out-window
+            self.name = f"{self._state_type}-{self._index}"
             self._p = None  # Transition probabilities from state
             self._states = None  # States to transition to
             self.sample = None  # Function to sample from state distribution
@@ -83,10 +99,8 @@ class MarkovChain(Generator):
                         mean = rng.uniform(-1, 1)  # Random
                 self._summary_stats = SummaryStats(mean, sd)
                 self.sample = lambda: rng.normal(mean, sd)
-            elif feature_type in {BINARY, CATEGORICAL}:
+            else:  # binary/categorical variable
                 self.sample = lambda: self._index
-            else:
-                raise ValueError("Feature type invalid: {0}".format(feature_type))
             self._p /= self._p.sum()  # normalize transition probabilities
 
         def transition(self):
@@ -96,28 +110,22 @@ class MarkovChain(Generator):
 
     def __init__(self, rng, feature_type, window, **kwargs):
         super().__init__(rng, feature_type, window)
-        n_states = 2 if self._feature_type == BINARY else kwargs.get("n_states", self._rng.integers(2, 5, endpoint=True))
-        self._window_independent = kwargs.get("window_independent", True)
-        self._trends = False  # If enabled, sampled values increase/decrease/stay constant according to trends corresponding to each state
+        n_states = kwargs.get("n_states", self._rng.integers(2, 5, endpoint=True))
+        self._window_independent = kwargs.get("window_independent", False)  # Sampled state independent of window location
+        # If trends enabled, sampled values increase/decrease/stay constant according to trends corresponding to each state:
+        self._trends = self._rng.choice([True, False]) if self._feature_type == CONTINUOUS else False
+        if self._trends and not self._window_independent:
+            n_states = min(n_states, 4)  # Separate chains in/out of window, so avoid too many trends within window
         self._init_value = self._rng.uniform(-1, 1)  # Initial value of Markov chain, used for trends
-        if self._feature_type == CONTINUOUS:
-            self._trends = self._rng.choice([True, False])
         # Select states inside and outside window
-        state_idx = set(range(n_states))
-        if self._window_independent:
-            states = [self.State(self, index, IN_WINDOW) for index in state_idx]
-            self._in_window_states = states
-            self._out_window_states = states
-            for state in states:
-                state.gen_distributions()
-        else:
-            num_window_states = self._rng.integers(1, n_states)  # up to one less than the total number of states
-            in_window_states_idx = self._rng.choice(range(n_states), size=num_window_states, replace=False)
-            out_window_states_idx = state_idx.difference(in_window_states_idx)
-            self._in_window_states = [self.State(self, index, IN_WINDOW) for index in in_window_states_idx]
-            self._out_window_states = [self.State(self, index, OUT_WINDOW) for index in out_window_states_idx]
-            for state in self._in_window_states + self._out_window_states:
-                state.gen_distributions()
+        self._in_window_states = [self.State(self, index, IN_WINDOW) for index in range(n_states)]
+        self._out_window_states = self._in_window_states
+        if not self._window_independent:
+            # Create separate chain in/out of window
+            self._out_window_states = [self.State(self, index, OUT_WINDOW) for index in range(n_states)]
+        states = self._in_window_states if self._window_independent else self._in_window_states + self._out_window_states
+        for state in states:
+            state.gen_distributions()
 
     def sample(self, sequence_length):
         cur_state = self._rng.choice(self._out_window_states)  # initial state
@@ -159,11 +167,10 @@ class MarkovChain(Generator):
                 cgraph.attr(label=clabels[cidx])
                 for state in cluster:
                     # pylint: disable = protected-access
-                    name = str(state._index)
-                    label = "State %s" % name
+                    label = "State %s" % state._index
                     if self._feature_type == CONTINUOUS:
                         label += "\nMean: %1.4f\nSD: %1.4f" % (state._summary_stats.mean, state._summary_stats.sd)
-                    cgraph.node(name, label=label)
+                    cgraph.node(state.name, label=label)
                     for oidx, ostate in enumerate(cluster):
-                        cgraph.edge(name, str(ostate._index), label=" %1.4f\t\n" % state._p[oidx])
+                        cgraph.edge(state.name, ostate.name, label=" %1.4f\t\n" % state._p[oidx])
         return graph

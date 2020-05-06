@@ -1,9 +1,11 @@
 """Feature generation"""
 
 from abc import ABC
+from copy import deepcopy
 
 from synmod.constants import BINARY, CATEGORICAL, CONTINUOUS, STATIC
 from synmod.generators import BernoulliProcess, MarkovChain
+from synmod.aggregators import Max
 
 
 class Feature(ABC):
@@ -55,6 +57,7 @@ class BinaryFeature(TemporalFeature):
     def __init__(self, name, rng, sequence_length, **kwargs):
         super().__init__(name, rng, sequence_length)
         generator_class = rng.choice([BernoulliProcess, MarkovChain])
+        kwargs["n_states"] = 2
         self.generator = generator_class(rng, BINARY, self.window, **kwargs)
 
 
@@ -63,6 +66,7 @@ class CategoricalFeature(TemporalFeature):
     def __init__(self, name, rng, sequence_length, **kwargs):
         super().__init__(name, rng, sequence_length)
         generator_class = rng.choice([MarkovChain])
+        kwargs["n_states"] = kwargs.get("n_states", rng.integers(3, 5, endpoint=True))
         self.generator = generator_class(rng, CATEGORICAL, self.window, **kwargs)
 
 
@@ -78,7 +82,11 @@ def get_feature(args, name, aggregation_fn):
     """Return randomly selected feature"""
     if args.synthesis_type == STATIC:
         return StaticBinaryFeature(name, args.rng)
-    feature_class = args.rng.choice([BinaryFeature, CategoricalFeature, ContinuousFeature],
-                                    p=[1/4, 1/4, 1/2])  # noqa: E226
     kwargs = {"window_independent": args.window_independent, "aggregation_fn": aggregation_fn}
-    return feature_class(name, args.rng, args.sequence_length, **kwargs)
+    feature_class = args.rng.choice([BinaryFeature, CategoricalFeature, ContinuousFeature], p=[1/4, 1/4, 1/2])  # noqa: E226
+    if isinstance(aggregation_fn, Max):
+        # Avoid low-variance features by sampling continuous or high-state-count categorical feature
+        feature_class = args.rng.choice([CategoricalFeature, ContinuousFeature], p=[1/4, 3/4])  # noqa: E226
+        if feature_class == CategoricalFeature:
+            kwargs["n_states"] = args.rng.integers(4, 5, endpoint=True)
+    return feature_class(name, deepcopy(args.rng), args.sequence_length, **kwargs)
