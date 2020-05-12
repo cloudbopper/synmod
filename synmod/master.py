@@ -5,6 +5,7 @@
 import argparse
 from distutils.util import strtobool
 import os
+import pickle
 
 import cloudpickle
 import numpy as np
@@ -120,10 +121,10 @@ def write_outputs(args, features, instances, model):
     if not args.write_outputs:
         return
     with open(f"{args.output_dir}/{constants.FEATURES_FILENAME}", "wb") as features_file:
-        cloudpickle.dump(features, features_file)
+        cloudpickle.dump(features, features_file, protocol=pickle.DEFAULT_PROTOCOL)
     np.save(f"{args.output_dir}/{constants.INSTANCES_FILENAME}", instances)
     with open(f"{args.output_dir}/{constants.MODEL_FILENAME}", "wb") as model_file:
-        cloudpickle.dump(model, model_file)
+        cloudpickle.dump(model, model_file, protocol=pickle.DEFAULT_PROTOCOL)
 
 
 def generate_labels(args, model, instances):
