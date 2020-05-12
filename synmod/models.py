@@ -49,10 +49,20 @@ class Classifier(Model):
     def predict(self, X, **kwargs):
         """
         Predict output probabilities on instances in X by aggregating features over time, applying a polynomial,
-        thresholding, then applying a sigmoid. If 'labels' is asserted, return output labels
+        thresholding, then applying a sigmoid.
+
+        Parameters
+        ----------
+        X: Matrix/tensor
+            Instances to predict model outputs for
+        labels: bool, optional, default False
+            Flag to return output labels instead of probabilities
+        noise: 1D float array, optional, default 0
+            Noise term(s) to add to polynomial before applying sigmoid
         """
         labels = kwargs.get("labels", False)
-        values = expit(self._polynomial_fn(self._aggregator.operate(X).transpose()) - self._threshold)  # Sigmoid output
+        noise = kwargs.get("noise", 0)
+        values = expit(self._polynomial_fn(self._aggregator.operate(X).transpose()) + noise - self._threshold)  # Sigmoid output
         if labels:
             values = (values > 0.5).astype(np.int32)
         return values
@@ -62,14 +72,25 @@ class Classifier(Model):
         """Logistic loss"""
         # TODO: 0-1 loss
         # TODO: Handle case when y_pred components are 1 or 0 (due to very small/large sigmoid inputs)
+        assert all(y_pred > 0) and all(y_pred < 1)
         return -y_true * np.log(y_pred) - (1 - y_true) * np.log(1 - y_pred)  # Binary cross-entropy
 
 
 class Regressor(Model):
     """Regression model"""
     def predict(self, X, **kwargs):
-        """Predict outputs on instances in X by aggregating features over time and applying a polynomial"""
-        return self._polynomial_fn(self._aggregator.operate(X).transpose())
+        """
+        Predict outputs on instances in X by aggregating features over time and applying a polynomial
+
+        Parameters
+        ----------
+        X: Matrix/tensor
+            Instances to predict model outputs for
+        noise: 1D float array, optional, default 0
+            Noise term(s) to add to polynomial
+        """
+        noise = kwargs.get("noise", 0)
+        return self._polynomial_fn(self._aggregator.operate(X).transpose()) + noise
 
     @staticmethod
     def loss(y_true, y_pred):
