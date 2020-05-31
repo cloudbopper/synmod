@@ -70,31 +70,30 @@ def pipeline(args):
     """Pipeline"""
     config(args)
     args.logger.info("Begin generating sequence data with args: %s" % args)
-    aggregation_fn = M.get_aggregation_fn(args)
-    features = generate_features(args, aggregation_fn)
+    features = generate_features(args)
     instances = generate_instances(args, features)
-    model = M.get_model(args, features, instances, aggregation_fn)
+    model = M.get_model(args, features, instances)
     write_outputs(args, features, instances, model)
     return features, instances, model
 
 
-def generate_features(args, aggregation_fn):
+def generate_features(args):
     """Generate features"""
-    def check_feature_variance(args, feature, aggregation_fn):
+    def check_feature_variance(args, feature):
         """Check variance of feature's raw/temporally aggregated values"""
         instances = np.array([feature.sample(args.sequence_length) for _ in range(constants.VARIANCE_TEST_COUNT)])
         aggregated = instances
         if args.synthesis_type == constants.TEMPORAL:
             left, right = feature.window
-            aggregated = aggregation_fn.operate_on_feature(instances[:, left: right + 1])
+            aggregated = feature.aggregation_fn.operate(instances[:, left: right + 1])
         return np.var(aggregated) > 1e-10
 
     # TODO: allow across-feature interactions
     features = [None] * args.num_features
     fid = 0
     while fid < args.num_features:
-        feature = F.get_feature(args, str(fid), aggregation_fn)
-        if not check_feature_variance(args, feature, aggregation_fn):
+        feature = F.get_feature(args, str(fid))
+        if not check_feature_variance(args, feature):
             # Reject feature if its raw/aggregated values have low variance
             args.logger.info(f"Rejecting feature {feature.__class__} due to low variance")
             continue

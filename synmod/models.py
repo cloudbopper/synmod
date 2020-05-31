@@ -12,7 +12,7 @@ import sympy
 from sympy.utilities.lambdify import lambdify
 
 from synmod import constants
-from synmod.aggregators import Average, Max, Identity
+from synmod.aggregators import Aggregator, StaticAggregator
 
 Polynomial = namedtuple("Polynomial", ["relevant_feature_map", "sym_polynomial_fn", "polynomial_fn"])
 
@@ -81,14 +81,7 @@ class Regressor(Model):
         return self._polynomial_fn(self._aggregator.operate(X).transpose()) + noise
 
 
-def get_aggregation_fn(args):
-    """Select temporal aggregation function"""
-    aggregation_fn = Identity() if args.synthesis_type == constants.STATIC else args.rng.choice([Average, Max])()
-    args.logger.info(f"Feature aggregation function: {aggregation_fn.__class__}")
-    return aggregation_fn
-
-
-def get_model(args, features, instances, aggregation_fn):
+def get_model(args, features, instances):
     """Generate and return model"""
     args = copy(args)
     args.rng = np.random.default_rng(args.seed)  # Reset RNG for consistent model independent of instances
@@ -96,15 +89,15 @@ def get_model(args, features, instances, aggregation_fn):
     relevant_features = get_relevant_features(args)
     polynomial = gen_polynomial(args, relevant_features)
     if args.synthesis_type == constants.STATIC:
-        return Regressor(aggregation_fn, polynomial)
+        return Regressor(StaticAggregator(), polynomial)
     # Select time window for each feature
     windows = [feature.window if fid in relevant_features else None for fid, feature in enumerate(features)]
     for fid in relevant_features:
         args.logger.info("Window for feature id %d: (%d, %d)" % (fid, windows[fid][0], windows[fid][1]))
-    aggregation_fn.set_windows(windows)
+    aggregator = Aggregator([feature.aggregation_fn for feature in features], windows)
     # Select model
     model_class = {constants.CLASSIFIER: Classifier, constants.REGRESSOR: Regressor}[args.model_type]
-    return model_class(aggregation_fn, polynomial, instances)
+    return model_class(aggregator, polynomial, instances)
 
 
 def get_window(args):
