@@ -45,9 +45,7 @@ class TemporalFeature(Feature):
         """Randomly select a window for the feature where the model should operate in"""
         assert sequence_length is not None  # TODO: handle variable-length sequence case
         # TODO: allow soft-edged windows (smooth decay of influence of feature values outside window)
-        right = sequence_length - 1  # Anchor half the windows on the right
-        if rng.uniform() < 0.5:
-            right = rng.choice(range(sequence_length // 2, sequence_length))
+        right = rng.choice(range(sequence_length // 2, sequence_length))
         left = rng.choice(range(0, right))
         return (left, right)
 

@@ -34,10 +34,6 @@ class Model(ABC):
     def predict(self, X, **kwargs):
         """Predict outputs on input instances"""
 
-    @staticmethod
-    def loss(y_true, y_pred):
-        """Compute loss vector for given target-prediction pairs"""
-
 
 class Classifier(Model):
     """Classification model"""
@@ -67,14 +63,6 @@ class Classifier(Model):
             values = (values > 0.5).astype(np.int32)
         return values
 
-    @staticmethod
-    def loss(y_true, y_pred):
-        """Logistic loss"""
-        # TODO: 0-1 loss
-        # TODO: Handle case when y_pred components are 1 or 0 (due to very small/large sigmoid inputs)
-        assert all(y_pred > 0) and all(y_pred < 1)
-        return -y_true * np.log(y_pred) - (1 - y_true) * np.log(1 - y_pred)  # Binary cross-entropy
-
 
 class Regressor(Model):
     """Regression model"""
@@ -91,12 +79,6 @@ class Regressor(Model):
         """
         noise = kwargs.get("noise", 0)
         return self._polynomial_fn(self._aggregator.operate(X).transpose()) + noise
-
-    @staticmethod
-    def loss(y_true, y_pred):
-        """RMSE loss"""
-        # Don't use sklearn.metrics.mean_squared_error here - it's much slower
-        return np.abs(y_true - y_pred)  # RMSE - possibly replace with MSE
 
 
 def get_aggregation_fn(args):
