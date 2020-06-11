@@ -27,6 +27,9 @@ class Generator(ABC):
     def graph(self):
         """Graph representation of generator (dot file)"""
 
+    def summary(self):
+        """Summary of generator"""
+
 
 class BernoulliProcess(Generator):
     """Bernoulli process generator"""
@@ -60,6 +63,10 @@ class BernoulliProcess(Generator):
                 cgraph.edge(cname, cname, " 1.0")
         return graph
 
+    def summary(self):
+        in_window_prob = self._p if self._window_independent else 1 - self._p
+        return dict(out_window_prob=self._p, in_window_prob=in_window_prob)
+
 
 # pylint: disable = invalid-name, pointless-statement
 class MarkovChain(Generator):
@@ -76,7 +83,8 @@ class MarkovChain(Generator):
             self._p = None  # Transition probabilities from state
             self._states = None  # States to transition to
             self.sample = None  # Function to sample from state distribution
-            self._summary_stats = SummaryStats(None, None)  # Only populated for continuous variables:
+            if self._chain._feature_type == CONTINUOUS:
+                self._summary_stats = SummaryStats(None, None)
 
         def gen_distributions(self):
             """Generate state transition and sampling distributions"""
@@ -174,3 +182,23 @@ class MarkovChain(Generator):
                     for oidx, ostate in enumerate(cluster):
                         cgraph.edge(state.name, ostate.name, label=" %1.4f\t\n" % state._p[oidx])
         return graph
+
+    def summary(self):
+        summary = {}
+        if self._feature_type == CONTINUOUS:
+            summary["trends"] = self._trends
+            if self._trends:
+                summary["init_value"] = self._init_value
+        for stype, states in {"out_window_states": self._out_window_states, "in_window_states": self._in_window_states}.items():
+            states_summary = [None] * len(states)
+            for idx, state in enumerate(states):
+                state_summary = {}
+                # pylint: disable = protected-access
+                state_summary["index"] = state._index
+                state_summary["p"] = state._p
+                if self._feature_type == CONTINUOUS:
+                    mean, sd = state._summary_stats
+                    state_summary["stats"] = dict(mean=mean, sd=sd)
+                states_summary[idx] = state_summary
+            summary[stype] = states_summary
+        return summary

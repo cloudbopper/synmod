@@ -16,6 +16,11 @@ class Feature(ABC):
     def sample(self, *args, **kwargs):
         """Sample value for feature"""
 
+    def summary(self):
+        """Return dictionary summarizing feature"""
+        return dict(name=self.name,
+                    type=self.__class__.__name__)
+
 
 class StaticBinaryFeature(Feature):
     """Binary static feature"""
@@ -27,6 +32,11 @@ class StaticBinaryFeature(Feature):
     def sample(self, *args, **kwargs):
         """Sample value for binary feature"""
         return self._rng.binomial(1, self.prob)
+
+    def summary(self):
+        summary = super().summary()
+        summary.update(dict(prob=self.prob))
+        return summary
 
 
 class TemporalFeature(Feature):
@@ -40,6 +50,14 @@ class TemporalFeature(Feature):
     def sample(self, *args, **kwargs):
         """Sample sequence from generator"""
         return self.generator.sample(*args, **kwargs)
+
+    def summary(self):
+        summary = super().summary()
+        assert self.generator is not None
+        summary.update(dict(window=self.window,
+                            aggregation_fn=self.aggregation_fn.__class__.__name__,
+                            generator=self.generator.summary()))
+        return summary
 
     @staticmethod
     def get_window(rng, sequence_length):

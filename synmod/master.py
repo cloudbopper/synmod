@@ -4,6 +4,7 @@
 
 import argparse
 from distutils.util import strtobool
+import json
 import os
 import pickle
 
@@ -13,7 +14,7 @@ import numpy as np
 from synmod import constants
 from synmod import features as F
 from synmod import models as M
-from synmod.utils import get_logger
+from synmod.utils import get_logger, JSONEncoderPlus
 
 
 def main():
@@ -49,26 +50,24 @@ def main():
     temporal.set_defaults(window_independent=None)
     # TODO: model_type should be common to both synthesis types
     temporal.add_argument("-model_type", help="type of model (classifier/regressor) - default random",
-                          choices=[constants.CLASSIFIER, constants.REGRESSOR], default=None)
+                          choices=[constants.CLASSIFIER, constants.REGRESSOR], default=constants.REGRESSOR)
     args = parser.parse_args()
     return pipeline(args)
 
 
-def config(args):
+def configure(args):
     """Configure arguments before execution"""
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
     args.rng = np.random.default_rng(args.seed)
     args.logger = get_logger(__name__, "%s/synmod.log" % args.output_dir)
-    if args.model_type is None:
-        args.model_type = args.rng.choice([constants.CLASSIFIER, constants.REGRESSOR])
     if args.window_independent is None:
         args.window_independent = args.rng.choice([True, False])
 
 
 def pipeline(args):
     """Pipeline"""
-    config(args)
+    configure(args)
     args.logger.info("Begin generating sequence data with args: %s" % args)
     features = generate_features(args)
     instances = generate_instances(args, features)
@@ -115,6 +114,13 @@ def generate_instances(args, features):
     return instances
 
 
+def generate_labels(args, model, instances):
+    """Generate labels"""
+    # TODO: decide how to handle multivariate case
+    # TODO: joint generation of labels and features
+    return model.predict(instances)
+
+
 def write_outputs(args, features, instances, model):
     """Write outputs to file"""
     if not args.write_outputs:
@@ -124,13 +130,35 @@ def write_outputs(args, features, instances, model):
     np.save(f"{args.output_dir}/{constants.INSTANCES_FILENAME}", instances)
     with open(f"{args.output_dir}/{constants.MODEL_FILENAME}", "wb") as model_file:
         cloudpickle.dump(model, model_file, protocol=pickle.DEFAULT_PROTOCOL)
+    write_summary(args, features, model)
 
 
-def generate_labels(args, model, instances):
-    """Generate labels"""
-    # TODO: decide how to handle multivariate case
-    # TODO: joint generation of labels and features
-    return model.predict(instances)
+def write_summary(args, features, model):
+    """Write summary of data generated"""
+    config = dict(synthesis_type=args.synthesis_type,
+                  num_instances=args.num_instances,
+                  num_features=args.num_features,
+                  sequence_length=args.sequence_length,
+                  model_type=model.__class__.__name__,
+                  sequences_independent_of_windows=args.window_independent,
+                  fraction_relevant_features=args.fraction_relevant_features,
+                  num_interactions=args.num_interactions,
+                  include_interaction_only_features=args.include_interaction_only_features,
+                  seed=args.seed)
+    # pylint: disable = protected-access
+    features_summary = [feature.summary() for feature in features]
+    model_summary = {}
+    if args.synthesis_type == constants.TEMPORAL:
+        model_summary["windows"] = [f"({window[0]}, {window[1]})" if window else None for window in model._aggregator._windows]
+        model_summary["aggregation_fns"] = [agg_fn.__class__.__name__ for agg_fn in model._aggregator._aggregation_fns]
+    model_summary["relevant_features"] = model.relevant_feature_names
+    model_summary["polynomial"] = model.sym_polynomial_fn.__repr__()
+    summary = dict(config=config, model=model_summary, features=features_summary)
+    summary_filename = f"{args.output_dir}/{constants.SUMMARY_FILENAME}"
+    args.logger.info(f"Writing summary to {summary_filename}")
+    with open(summary_filename, "w") as summary_file:
+        json.dump(summary, summary_file, indent=2, cls=JSONEncoderPlus)
+    return summary
 
 
 if __name__ == "__main__":
