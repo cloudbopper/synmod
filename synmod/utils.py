@@ -24,4 +24,4 @@ class JSONEncoderPlus(json.JSONEncoder):
             return float(obj)
         if isinstance(obj, np.ndarray):
             return obj.tolist()
-        return super(JSONEncoderPlus, self).default(obj)
+        return super().default(obj)

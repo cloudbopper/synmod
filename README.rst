@@ -33,13 +33,13 @@ Feature Generation
 We randomly sample a mixture of discrete and continuous features, and for each feature, we randomly
 sample sequence generators based on Bernoulli processes (binary features only) and Markov chains
 (binary/categorical/continuous features). Each feature is associated with a randomly selected window,
-so that the generating process within the window is different from that outside the window. 
-For some continuous features, sampled values are accumulated so as to model trends, i.e. 
-contiguous time periods where the value of the feature increases, decreases or 
+so that the generating process within the window is different from that outside the window.
+For some continuous features, sampled values are accumulated so as to model trends, i.e.
+contiguous time periods where the value of the feature increases, decreases or
 stays nearly constant, so that the ordering of values becomes significant.
 
 .. figure:: images/sim-generator.png
-    
+
     Markov chain generator for a continuous feature. A window (i.e. subsequence)
     is randomly selected for the feature. The sequence
     for a given instance is generated via a random walk through the
@@ -51,8 +51,8 @@ stays nearly constant, so that the ordering of values becomes significant.
 
 .. figure:: images/sim-series.png
 
-    Three generated time series for a feature using such a generator. In this 
-    example, the value sampled for the feature at a given timestep is used to 
+    Three generated time series for a feature using such a generator. In this
+    example, the value sampled for the feature at a given timestep is used to
     increment the value of the feature to generate trends.
 
 

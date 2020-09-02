@@ -22,11 +22,8 @@ class Aggregator():
         num_instances, num_features, _ = sequences.shape  # sequences: instances X features X timesteps
         matrix = np.zeros((num_instances, num_features))
         for fidx in range(num_features):
-            window = self._windows[fidx]
-            if window is not None:
-                # Relevant feature; if irrelevant, values can be zero as they don't matter
-                (left, right) = window
-                matrix[:, fidx] = self.operate_on_feature(fidx, sequences[:, fidx, left: right + 1])
+            (left, right) = self._windows[fidx]
+            matrix[:, fidx] = self.operate_on_feature(fidx, sequences[:, fidx, left: right + 1])
         return matrix
 
 

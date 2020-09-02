@@ -40,7 +40,7 @@ class Classifier(Model):
     def __init__(self, aggregator, polynomial, X):
         super().__init__(aggregator, polynomial)
         assert X is not None
-        self._threshold = np.median(self._polynomial_fn(self._aggregator.operate(X).transpose()))
+        self._threshold = np.median(self._polynomial_fn(self._aggregator.operate(X).transpose(), 0))
 
     def predict(self, X, **kwargs):
         """
@@ -58,7 +58,7 @@ class Classifier(Model):
         """
         labels = kwargs.get("labels", False)
         noise = kwargs.get("noise", 0)
-        values = expit(self._polynomial_fn(self._aggregator.operate(X).transpose()) + noise - self._threshold)  # Sigmoid output
+        values = expit(self._polynomial_fn(self._aggregator.operate(X).transpose(), noise) - self._threshold)  # Sigmoid output
         if labels:
             values = (values > 0.5).astype(np.int32)
         return values
@@ -77,8 +77,8 @@ class Regressor(Model):
         noise: 1D float array, optional, default 0
             Noise term(s) to add to polynomial
         """
-        noise = kwargs.get("noise", 0)
-        return self._polynomial_fn(self._aggregator.operate(X).transpose()) + noise
+        noise = kwargs.get("noise", 0)  # TODO: this is the noise multiplier
+        return self._polynomial_fn(self._aggregator.operate(X).transpose(), noise)
 
 
 def get_model(args, features, instances):
@@ -91,9 +91,10 @@ def get_model(args, features, instances):
     if args.synthesis_type == constants.STATIC:
         return Regressor(StaticAggregator(), polynomial)
     # Select time window for each feature
-    windows = [feature.window if fid in relevant_features else None for fid, feature in enumerate(features)]
-    for fid in relevant_features:
-        args.logger.info("Window for feature id %d: (%d, %d)" % (fid, windows[fid][0], windows[fid][1]))
+    windows = [feature.window for feature in features]
+    for fid, _ in enumerate(features):
+        relevance = "relevant" if fid in relevant_features else "irrelevant"
+        args.logger.info(f"Window for {relevance} feature id {fid}: ({windows[fid][0]}, {windows[fid][1]})")
     aggregator = Aggregator([feature.aggregation_fn for feature in features], windows)
     # Select model
     model_class = {constants.CLASSIFIER: Classifier, constants.REGRESSOR: Regressor}[args.model_type]
@@ -113,17 +114,18 @@ def get_window(args):
 def gen_polynomial(args, relevant_features):
     """Generate polynomial which decides the ground truth and noisy model"""
     # Note: using sympy to build function appears to be 1.5-2x slower than erstwhile raw numpy implementation (for linear terms)
-    sym_features = sympy.symbols(["x%d" % x for x in range(args.num_features)])
+    sym_features = sympy.symbols(["x_%d" % x for x in range(args.num_features)])
+    sym_noise = sympy.Symbol("beta", real=True)  # multiplier for irrelevant features in approximate model
     relevant_feature_map = {}  # map of relevant feature sets to coefficients
     # Generate polynomial expression
     # Pairwise interaction terms
     sym_polynomial_fn = 0
     sym_polynomial_fn = update_interaction_terms(args, relevant_features, relevant_feature_map, sym_features, sym_polynomial_fn)
     # Linear terms
-    sym_polynomial_fn = update_linear_terms(args, relevant_features, relevant_feature_map, sym_features, sym_polynomial_fn)
+    sym_polynomial_fn = update_linear_terms(args, relevant_features, relevant_feature_map, sym_features, sym_noise, sym_polynomial_fn)
     args.logger.info("Ground truth polynomial:\ny = %s" % sym_polynomial_fn)
     # Generate model expression
-    polynomial_fn = lambdify([sym_features], sym_polynomial_fn, "numpy")
+    polynomial_fn = lambdify([sym_features, sym_noise], sym_polynomial_fn, "numpy")
     return Polynomial(relevant_feature_map, sym_polynomial_fn, polynomial_fn)
 
 
@@ -157,7 +159,8 @@ def update_interaction_terms(args, relevant_features, relevant_feature_map, sym_
     return sym_polynomial_fn
 
 
-def update_linear_terms(args, relevant_features, relevant_feature_map, sym_features, sym_polynomial_fn):
+# pylint: disable = too-many-arguments
+def update_linear_terms(args, relevant_features, relevant_feature_map, sym_features, sym_noise, sym_polynomial_fn):
     """Order one terms for polynomial"""
     interaction_features = set()
     for interaction in relevant_feature_map.keys():
@@ -169,11 +172,9 @@ def update_linear_terms(args, relevant_features, relevant_feature_map, sym_featu
                                                     len(interaction_features) // 2,
                                                     replace=False)
     linear_features = sorted(relevant_features.difference(interaction_only_features))
-    coefficients = np.zeros(args.num_features)
-    coefficients[linear_features] = args.rng.uniform(size=len(linear_features))
-    if args.model_type == constants.CLASSIFIER:
-        # TODO: always flip sign randomly, even for regression
-        coefficients[linear_features] *= args.rng.choice([-1, 1], size=len(linear_features))  # Randomly flip sign
+    coefficients = sym_noise * np.ones(args.num_features)
+    coefficients[list(relevant_features)] = 1
+    coefficients *= args.rng.uniform(-1, 1, size=args.num_features)
     for linear_feature in linear_features:
         relevant_feature_map[frozenset([linear_feature])] = coefficients[linear_feature]
     sym_polynomial_fn += coefficients.dot(sym_features)
