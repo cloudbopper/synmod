@@ -4,6 +4,7 @@
 
 import argparse
 from distutils.util import strtobool
+import functools
 import json
 import os
 import pickle
@@ -14,6 +15,7 @@ import numpy as np
 from synmod import constants
 from synmod import features as F
 from synmod import models as M
+from synmod.aggregators import Slope
 from synmod.utils import get_logger, JSONEncoderPlus
 
 
@@ -45,6 +47,7 @@ def main():
     temporal = parser.add_argument_group("Temporal synthesis parameters")
     temporal.add_argument("-sequence_length", help="Length of regularly sampled sequence",
                           type=int, required=True)
+    # TODO: Make sequences dependent on windows by default to avoid unpredictability
     temporal.add_argument("-sequences_independent_of_windows", help="If enabled, Markov chain sequence data doesn't depend on timesteps being"
                           " inside vs. outside the window (default random)", type=strtobool, dest="window_independent")
     temporal.set_defaults(window_independent=None)
@@ -72,6 +75,7 @@ def pipeline(args):
     features = generate_features(args)
     instances = generate_instances(args, features)
     model = M.get_model(args, features, instances)
+    ground_truth_estimation(args, features, instances, model)
     write_outputs(args, features, instances, model)
     return features, instances, model
 
@@ -119,6 +123,39 @@ def generate_labels(args, model, instances):
     # TODO: decide how to handle multivariate case
     # TODO: joint generation of labels and features
     return model.predict(instances)
+
+
+def ground_truth_estimation(args, features, instances, model):
+    """Estimate and tag ground truth importance of features"""
+    # pylint: disable = protected-access
+    args.logger.info("Begin estimating ground truth effects")
+    relevant_features = functools.reduce(set.union, model.relevant_feature_map, set())
+    matrix = model._aggregator.operate(instances)
+    zvec = np.zeros(args.num_features)
+    for idx, feature in enumerate(features):
+        if idx not in relevant_features:
+            continue
+        feature.important = True
+        if args.model_type == constants.REGRESSOR:
+            if args.num_interactions > 0:
+                args.logger.warning("Ground truth importance for interacting features not worked out")
+                feature.effect_size = 1  # TODO: theory worked out only for non-interacting features
+            else:
+                # Compute effect size: 2 * covar(Y, g(X))
+                fvec = np.copy(zvec)
+                fvec[idx] = 1
+                alpha = model._polynomial_fn(fvec, 1) - model._polynomial_fn(zvec, 1)  # Linear coefficient
+                feature.effect_size = 2 * alpha**2 * np.var(matrix[:, idx])
+        else:
+            args.logger.warning("Ground truth importance for classifier not well-defined")
+            feature.effect_size = 1  # Ground truth importance score for classifier not well-defined
+        if args.synthesis_type == constants.TEMPORAL:
+            feature.window_important = True
+            left, right = feature.window
+            # TODO: Confirm these fields are correct when sequences have the same in- and out-distributions
+            feature.window_ordering_important = isinstance(feature.aggregation_fn, Slope)
+            feature.ordering_important = (right - left + 1 < args.sequence_length) or feature.window_ordering_important
+    args.logger.info("End estimating ground truth effects")
 
 
 def write_outputs(args, features, instances, model):

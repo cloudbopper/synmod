@@ -12,6 +12,9 @@ class Feature(ABC):
     """Feature base class"""
     def __init__(self, name):
         self.name = name
+        # Initialize relevance
+        self.important = False
+        self.effect_size = 0
 
     def sample(self, *args, **kwargs):
         """Sample value for feature"""
@@ -46,6 +49,10 @@ class TemporalFeature(Feature):
         self.window = self.get_window(rng, sequence_length)
         self.generator = None
         self.aggregation_fn = aggregation_fn
+        # Initialize relevance
+        self.window_important = False
+        self.ordering_important = False
+        self.window_ordering_important = False
 
     def sample(self, *args, **kwargs):
         """Sample sequence from generator"""
