@@ -95,7 +95,7 @@ def get_model(args, features, instances):
     for fid, _ in enumerate(features):
         relevance = "relevant" if fid in relevant_features else "irrelevant"
         args.logger.info(f"Window for {relevance} feature id {fid}: ({windows[fid][0]}, {windows[fid][1]})")
-    aggregator = Aggregator([feature.aggregation_fn for feature in features], windows)
+    aggregator = Aggregator([feature.aggregation_fn for feature in features], windows, instances, args.standardize_features)
     # Select model
     model_class = {constants.CLASSIFIER: Classifier, constants.REGRESSOR: Regressor}[args.model_type]
     return model_class(aggregator, polynomial, instances)

@@ -51,9 +51,11 @@ def main():
     temporal.add_argument("-sequences_independent_of_windows", help="If enabled, Markov chain sequence data doesn't depend on timesteps being"
                           " inside vs. outside the window (default random)", type=strtobool, dest="window_independent")
     temporal.set_defaults(window_independent=None)
-    # TODO: model_type should be common to both synthesis types
+    # TODO: the following options should be common to both synthesis types
     temporal.add_argument("-model_type", help="type of model (classifier/regressor) - default random",
                           choices=[constants.CLASSIFIER, constants.REGRESSOR], default=constants.REGRESSOR)
+    temporal.add_argument("-standardize_features", help="add feature standardization (0 mean, 1 SD) to model",
+                          type=strtobool)
     args = parser.parse_args()
     return pipeline(args)
 
@@ -188,6 +190,8 @@ def write_summary(args, features, model):
     if args.synthesis_type == constants.TEMPORAL:
         model_summary["windows"] = [f"({window[0]}, {window[1]})" if window else None for window in model._aggregator._windows]
         model_summary["aggregation_fns"] = [agg_fn.__class__.__name__ for agg_fn in model._aggregator._aggregation_fns]
+        model_summary["means"] = model._aggregator._means
+        model_summary["stds"] = model._aggregator._stds
     model_summary["relevant_features"] = model.relevant_feature_names
     model_summary["polynomial"] = model.sym_polynomial_fn.__repr__()
     summary = dict(config=config, model=model_summary, features=features_summary)

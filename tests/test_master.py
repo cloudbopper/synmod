@@ -92,3 +92,24 @@ def test_reproducible_write_outputs(tmpdir, data_regression, file_regression, ca
         model = cloudpickle.load(model_file)
     labels = model.predict(data, labels=True)
     data_regression.check(data.tostring() + labels.tostring())
+
+
+def test_reproducible_standardize_features(tmpdir, data_regression, file_regression, caplog):
+    """Regression test to test reproducibility with standardized features"""
+    output_dir = pre_test(sys._getframe().f_code.co_name, tmpdir, caplog)
+    cmd = ("python -m synmod -model_type classifier -num_instances 100 -num_features 10 -sequence_length 20 "
+           "-fraction_relevant_features 0.8 -include_interaction_only_features 1 -write_outputs 1 "
+           "-standardize_features 1 -output_dir {0} -seed {1}"
+           .format(output_dir, constants.SEED))
+    pass_args = cmd.split()[2:]
+    with patch.object(sys, 'argv', pass_args):
+        master.main()
+    data = np.load(f"{output_dir}/{constants.INSTANCES_FILENAME}")
+    post_test(caplog, output_dir)
+    with open(f"{output_dir}/{constants.SUMMARY_FILENAME}", "rb") as summary_file:
+        summary = json.load(summary_file)
+    file_regression.check(json.dumps(summary, indent=2), extension=".json")
+    with open(f"{output_dir}/{constants.MODEL_FILENAME}", "rb") as model_file:
+        model = cloudpickle.load(model_file)
+    labels = model.predict(data, labels=True)
+    data_regression.check(data.tostring() + labels.tostring())
