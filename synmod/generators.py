@@ -55,11 +55,11 @@ class BernoulliProcess(Generator):
         if not self._window_independent:
             cnames.append("1")
             cprobs.append(1 - self._p)
-            clabels = ["In-window state", "Out-of-window state"]
+            clabels = ["Out-of-window state", "In-window state"]
         for cidx, cname in enumerate(cnames):
             with graph.subgraph(name=f"cluster_{cidx}") as cgraph:
                 cgraph.attr(label=clabels[cidx])
-                cgraph.node(cname, label="P(X = 1) = %1.4f" % cprobs[cidx])
+                cgraph.node(cname, label="P(X = 1) = %1.5f" % cprobs[cidx])
                 cgraph.edge(cname, cname, " 1.0")
         return graph
 
@@ -161,7 +161,7 @@ class MarkovChain(Generator):
         graph = graphviz.Digraph()
         label = "Markov chain\nFeature type: %s" % self._feature_type
         if self._trends:
-            label += "\nTrends: True\nInitial value: %1.4f" % self._init_value
+            label += "\nTrends: True\nInitial value: %1.5f" % self._init_value
         left, right = self._window
         label += f"\nWindow: [{left}, {right}]\n\n"
         graph.attr(label=label, labelloc="t")
@@ -177,10 +177,10 @@ class MarkovChain(Generator):
                     # pylint: disable = protected-access
                     label = "State %s" % state._index
                     if self._feature_type == CONTINUOUS:
-                        label += "\nMean: %1.4f\nSD: %1.4f" % (state._summary_stats.mean, state._summary_stats.sd)
+                        label += "\nMean: %1.5f\nSD: %1.5f" % (state._summary_stats.mean, state._summary_stats.sd)
                     cgraph.node(state.name, label=label)
                     for oidx, ostate in enumerate(cluster):
-                        cgraph.edge(state.name, ostate.name, label=" %1.4f\t\n" % state._p[oidx])
+                        cgraph.edge(state.name, ostate.name, label=" %1.5f\t\n" % state._p[oidx])
         return graph
 
     def summary(self):
