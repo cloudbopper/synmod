@@ -140,7 +140,7 @@ def ground_truth_estimation(args, features, instances, model):
         feature.important = True
         if args.model_type == constants.REGRESSOR:
             if args.num_interactions > 0:
-                args.logger.warning("Ground truth importance for interacting features not worked out")
+                args.logger.info("Ground truth importance for interacting features not worked out")
                 feature.effect_size = 1  # TODO: theory worked out only for non-interacting features
             else:
                 # Compute effect size: 2 * covar(Y, g(X))
@@ -149,7 +149,7 @@ def ground_truth_estimation(args, features, instances, model):
                 alpha = model._polynomial_fn(fvec, 1) - model._polynomial_fn(zvec, 1)  # Linear coefficient
                 feature.effect_size = 2 * alpha**2 * np.var(matrix[:, idx])
         else:
-            args.logger.warning("Ground truth importance for classifier not well-defined")
+            args.logger.info("Ground truth importance for classifier not well-defined")
             feature.effect_size = 1  # Ground truth importance score for classifier not well-defined
         if args.synthesis_type == constants.TEMPORAL:
             feature.window_important = True

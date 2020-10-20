@@ -57,7 +57,7 @@ def test_reproducible_classifier(tmpdir, data_regression, caplog):
         _, data, model = master.main()
     post_test(caplog, output_dir)
     labels = model.predict(data, labels=True)
-    data_regression.check(data.tostring() + labels.tostring())
+    data_regression.check(data.tobytes() + labels.tobytes())
 
 
 def test_reproducible_regressor(tmpdir, data_regression, caplog):
@@ -71,7 +71,7 @@ def test_reproducible_regressor(tmpdir, data_regression, caplog):
         _, data, model = master.main()
     post_test(caplog, output_dir)
     labels = model.predict(data)
-    data_regression.check(data.tostring() + labels.tostring())
+    data_regression.check(data.tobytes() + labels.tobytes())
 
 
 def test_reproducible_write_outputs(tmpdir, data_regression, file_regression, caplog):
@@ -91,7 +91,7 @@ def test_reproducible_write_outputs(tmpdir, data_regression, file_regression, ca
     with open(f"{output_dir}/{constants.MODEL_FILENAME}", "rb") as model_file:
         model = cloudpickle.load(model_file)
     labels = model.predict(data, labels=True)
-    data_regression.check(data.tostring() + labels.tostring())
+    data_regression.check(data.tobytes() + labels.tobytes())
 
 
 def test_reproducible_standardize_features(tmpdir, data_regression, file_regression, caplog):
@@ -112,4 +112,4 @@ def test_reproducible_standardize_features(tmpdir, data_regression, file_regress
     with open(f"{output_dir}/{constants.MODEL_FILENAME}", "rb") as model_file:
         model = cloudpickle.load(model_file)
     labels = model.predict(data, labels=True)
-    data_regression.check(data.tostring() + labels.tostring())
+    data_regression.check(data.tobytes() + labels.tobytes())
