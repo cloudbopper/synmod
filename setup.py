@@ -34,7 +34,7 @@ setup(
     install_requires=[
         "cloudpickle",
         "graphviz",
-        "numpy>=1.17.0",
+        "numpy>=1.19.0",
         "scikit-learn",
         "sympy"
     ],
