@@ -41,6 +41,7 @@ setup(
     keywords="synmod",
     license="MIT",
     long_description=readme + "\n\n" + changelog,
+    long_description_content_type="text/plain",
     name="synmod",
     packages=find_packages(),
     python_requires=">= 3.6",
