@@ -7,6 +7,7 @@ from unittest.mock import patch
 import cloudpickle
 import numpy as np
 
+import synmod
 from synmod import master, constants
 from tests.utils import pre_test, post_test
 
@@ -15,7 +16,7 @@ from tests.utils import pre_test, post_test
 def test_regressor1(tmpdir, caplog):
     """Test synthetic data generation"""
     output_dir = pre_test(sys._getframe().f_code.co_name, tmpdir, caplog)
-    cmd = ("python -m synmod -model_type regressor -num_instances 100 -num_features 10 -sequence_length 20 "
+    cmd = ("python -m synmod -synthesis_type temporal -model_type regressor -num_instances 100 -num_features 10 -sequence_length 20 "
            "-fraction_relevant_features 0.5 -include_interaction_only_features 1 -output_dir {0} -seed {1}"
            .format(output_dir, constants.SEED))
     pass_args = cmd.split()[2:]
@@ -27,7 +28,7 @@ def test_regressor1(tmpdir, caplog):
 def test_subprocess1(tmpdir, caplog):
     """Test synthetic data generation"""
     output_dir = pre_test(sys._getframe().f_code.co_name, tmpdir, caplog)
-    cmd = ("python -m synmod -model_type regressor -num_instances 100 -num_features 10 -sequence_length 20 "
+    cmd = ("python -m synmod -synthesis_type temporal -model_type regressor -num_instances 100 -num_features 10 -sequence_length 20 "
            "-fraction_relevant_features 0.5 -include_interaction_only_features 1 -output_dir {0} -seed {1}"
            .format(output_dir, constants.SEED))
     subprocess.check_call(cmd, shell=True)
@@ -37,7 +38,7 @@ def test_subprocess1(tmpdir, caplog):
 def test_classifier1(tmpdir, caplog):
     """Test synthetic data generation"""
     output_dir = pre_test(sys._getframe().f_code.co_name, tmpdir, caplog)
-    cmd = ("python -m synmod -model_type classifier -num_instances 100 -num_features 10 -sequence_length 20 "
+    cmd = ("python -m synmod -synthesis_type temporal -model_type classifier -num_instances 100 -num_features 10 -sequence_length 20 "
            "-fraction_relevant_features 0.5 -include_interaction_only_features 1 -output_dir {0} -seed {1}"
            .format(output_dir, constants.SEED))
     pass_args = cmd.split()[2:]
@@ -49,7 +50,7 @@ def test_classifier1(tmpdir, caplog):
 def test_reproducible_classifier(tmpdir, data_regression, caplog):
     """Reproducibility of results regression test"""
     output_dir = pre_test(sys._getframe().f_code.co_name, tmpdir, caplog)
-    cmd = ("python -m synmod -model_type classifier -num_instances 100 -num_features 10 -sequence_length 20 "
+    cmd = ("python -m synmod -synthesis_type temporal -model_type classifier -num_instances 100 -num_features 10 -sequence_length 20 "
            "-fraction_relevant_features 0.8 -include_interaction_only_features 1 -output_dir {0} -seed {1}"
            .format(output_dir, constants.SEED))
     pass_args = cmd.split()[2:]
@@ -63,7 +64,7 @@ def test_reproducible_classifier(tmpdir, data_regression, caplog):
 def test_reproducible_regressor(tmpdir, data_regression, caplog):
     """Reproducibility of results regression test"""
     output_dir = pre_test(sys._getframe().f_code.co_name, tmpdir, caplog)
-    cmd = ("python -m synmod -model_type regressor -num_instances 100 -num_features 10 -sequence_length 20 "
+    cmd = ("python -m synmod -synthesis_type temporal -model_type regressor -num_instances 100 -num_features 10 -sequence_length 20 "
            "-fraction_relevant_features 0.8 -include_interaction_only_features 1 -output_dir {0} -seed {1}"
            .format(output_dir, constants.SEED))
     pass_args = cmd.split()[2:]
@@ -77,7 +78,7 @@ def test_reproducible_regressor(tmpdir, data_regression, caplog):
 def test_reproducible_write_outputs(tmpdir, data_regression, file_regression, caplog):
     """Regression test to test reproducible human-readable summary of config/model/features and output files"""
     output_dir = pre_test(sys._getframe().f_code.co_name, tmpdir, caplog)
-    cmd = ("python -m synmod -model_type classifier -num_instances 100 -num_features 10 -sequence_length 20 "
+    cmd = ("python -m synmod -synthesis_type temporal -model_type classifier -num_instances 100 -num_features 10 -sequence_length 20 "
            "-fraction_relevant_features 0.8 -include_interaction_only_features 1 -write_outputs 1 -output_dir {0} -seed {1}"
            .format(output_dir, constants.SEED))
     pass_args = cmd.split()[2:]
@@ -97,7 +98,7 @@ def test_reproducible_write_outputs(tmpdir, data_regression, file_regression, ca
 def test_reproducible_standardize_features(tmpdir, data_regression, file_regression, caplog):
     """Regression test to test reproducibility with standardized features"""
     output_dir = pre_test(sys._getframe().f_code.co_name, tmpdir, caplog)
-    cmd = ("python -m synmod -model_type classifier -num_instances 100 -num_features 10 -sequence_length 20 "
+    cmd = ("python -m synmod -synthesis_type temporal -model_type classifier -num_instances 100 -num_features 10 -sequence_length 20 "
            "-fraction_relevant_features 0.8 -include_interaction_only_features 1 -write_outputs 1 "
            "-standardize_features 1 -output_dir {0} -seed {1}"
            .format(output_dir, constants.SEED))
@@ -113,3 +114,9 @@ def test_reproducible_standardize_features(tmpdir, data_regression, file_regress
         model = cloudpickle.load(model_file)
     labels = model.predict(data, labels=True)
     data_regression.check(data.tobytes() + labels.tobytes())
+
+
+def test_interface(tmpdir, caplog):
+    """Test API"""
+    output_dir = pre_test(sys._getframe().f_code.co_name, tmpdir, caplog)
+    _ = synmod.synthesize(output_dir=output_dir, num_features=2, num_instances=10, synthesis_type=constants.TEMPORAL, sequence_length=5)

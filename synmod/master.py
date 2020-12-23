@@ -19,7 +19,16 @@ from synmod.aggregators import Slope
 from synmod.utils import get_logger, JSONEncoderPlus
 
 
-def main():
+def synthesize(**kwargs):
+    """API to synthesize features, data and model"""
+    strargs = []
+    for key, value in kwargs.items():
+        strargs.append(f"-{key}")
+        strargs.append(f"{value}")
+    return main(strargs=strargs)
+
+
+def main(strargs=None):
     """Parse args and launch pipeline"""
     parser = argparse.ArgumentParser("python synmod")
     # Required arguments
@@ -30,7 +39,7 @@ def main():
     required.add_argument("-num_instances", help="Number of instances",
                           type=int, required=True)
     required.add_argument("-synthesis_type", help="Type of data/model synthesis to perform",
-                          default=constants.TEMPORAL, choices=[constants.TEMPORAL, constants.STATIC])
+                          choices=[constants.TEMPORAL, constants.STATIC], required=True)
     # Optional common arguments
     common = parser.add_argument_group("Common optional parameters")
     common.add_argument("-fraction_relevant_features", help="Fraction of features relevant to model",
@@ -46,7 +55,7 @@ def main():
     # Temporal synthesis arguments
     temporal = parser.add_argument_group("Temporal synthesis parameters")
     temporal.add_argument("-sequence_length", help="Length of regularly sampled sequence",
-                          type=int, required=True)
+                          type=int)
     # TODO: Make sequences dependent on windows by default to avoid unpredictability
     temporal.add_argument("-sequences_independent_of_windows", help="If enabled, Markov chain sequence data doesn't depend on timesteps being"
                           " inside vs. outside the window (default random)", type=strtobool, dest="window_independent")
@@ -56,7 +65,9 @@ def main():
                           choices=[constants.CLASSIFIER, constants.REGRESSOR], default=constants.REGRESSOR)
     temporal.add_argument("-standardize_features", help="add feature standardization (0 mean, 1 SD) to model",
                           type=strtobool)
-    args = parser.parse_args()
+    args = parser.parse_args(args=strargs)
+    if args.synthesis_type == constants.TEMPORAL and args.sequence_length is None:
+        parser.error(f"-sequence_length required for -synthesis_type {constants.TEMPORAL}")
     return pipeline(args)
 
 
