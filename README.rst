@@ -18,10 +18,9 @@ It also partitions the set of features into relevant and irrelevant, selects
 temporal windows for each feature, and uses these to create a function representing
 a time-series model.
 
-**Heads-up**: ``synmod`` is currently a work-in-progress, and the API and/or functionality may change
-significantly before the initial version is released on PyPI. ``synmod`` is developed to
-support and in conjunction with anamod_, a Python library implementing algorithms designed
-to analyze feature importance of (temporal) black-box models.
+``synmod`` is developed to
+support anamod_, a Python library implementing algorithms designed
+to analyze feature importance of black-box models.
 
 .. _anamod: https://github.com/cloudbopper/anamod
 

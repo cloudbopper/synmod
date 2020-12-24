@@ -25,9 +25,9 @@ notifications:
 deploy:
   provider: pypi
   distributions: sdist bdist_wheel
-  user: cloudbopper
+  user: __token__
   password:
-    secure: ""
+    secure: uM7CCAKCirekOQ7J4HETEy4QYdG/2hPuEVl3yl0kBXFwm1Ecwx1eTuOOzFWd2FFhwIHEBeradflWHlTKYOv+ID0lDtWX06UZSJ3wehHXm1B0je6K6Wo6Fs2fqre8YFGBJUfSFgAjpf4+i3r4RmQof0+jFwenLJLf87qIiJbO+cNhJcAqkv6V7mvpxwuWO3/RMLj6Q/OXcrG5k+Ql31WAt+qY1tpJhW/ebJRyq9FHus9I3opjx7tg54fg4hozzWZ6Hy49NP0H0f3YnM0SDOVQlGFyOVIoNFQfkWOUARgYpaRbLP3l85EM9HO6nyOrR29vkXS+FxvCL7b2Gk1NDLtXT8uU+XCW+06iTvAYgwum1pTHt1Nn7KUlmchQa67NhDtwm7rlwGmM0PjPmx866QNaJmZzDe95JGLyND4kH4LqQj3Z5yQgORevsRJJY2ft2IFw/vVoMPJ7nQhaG3SmRlCmkXY/u3/wWV3RTENMGiosbgISUghEWvVNAR3YvbFjn7CDWtIT8XP21RyrFVzILueuJ36BqHpXVtjUbWslAOXPkEsYnBPuzYK6x2Eo36yxrwk2uwVnrgH0jR0RkY/IA1CFK3YtXGccMzN8iP9rTASQ5JBSK3GalWpxxevJgxbiRM3lhlErVp/W3RSZHzoHzuITjfp1IlO9mF5ljUOVcuEz4zE=
   on:
     tags: true
     repo: cloudbopper/synmod
