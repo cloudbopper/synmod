@@ -15,7 +15,6 @@ import numpy as np
 from synmod import constants
 from synmod import features as F
 from synmod import models as M
-from synmod.aggregators import Slope
 from synmod.utils import get_logger, JSONEncoderPlus
 
 
@@ -166,7 +165,7 @@ def ground_truth_estimation(args, features, instances, model):
             feature.window_important = True
             left, right = feature.window
             # TODO: Confirm these fields are correct when sequences have the same in- and out-distributions
-            feature.window_ordering_important = isinstance(feature.aggregation_fn, Slope)
+            feature.window_ordering_important = feature.aggregation_fn.ordering_important
             feature.ordering_important = (right - left + 1 < args.sequence_length) or feature.window_ordering_important
     args.logger.info("End estimating ground truth effects")
 

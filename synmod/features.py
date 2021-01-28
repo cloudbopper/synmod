@@ -6,7 +6,7 @@ import numpy as np
 
 from synmod.constants import BINARY, CATEGORICAL, CONTINUOUS, STATIC
 from synmod.generators import BernoulliProcess, MarkovChain
-from synmod.aggregators import Max, get_aggregation_fn
+from synmod.aggregators import Max, get_aggregation_fn_cls
 
 
 class Feature(ABC):
@@ -45,11 +45,11 @@ class StaticBinaryFeature(Feature):
 
 class TemporalFeature(Feature):
     """Base class for features that take a sequence of values"""
-    def __init__(self, name, seed_seq, sequence_length, aggregation_fn):
+    def __init__(self, name, seed_seq, sequence_length, aggregation_fn_cls):
         super().__init__(name, seed_seq)
         self.window = self.get_window(sequence_length)
         self.generator = None
-        self.aggregation_fn = aggregation_fn
+        self.aggregation_fn = aggregation_fn_cls(**dict(rng=self._rng, window=self.window))
         # Initialize relevance
         self.window_important = False
         self.ordering_important = False
@@ -78,8 +78,8 @@ class TemporalFeature(Feature):
 
 class BinaryFeature(TemporalFeature):
     """Binary feature"""
-    def __init__(self, name, seed_seq, sequence_length, aggregation_fn, **kwargs):
-        super().__init__(name, seed_seq, sequence_length, aggregation_fn)
+    def __init__(self, name, seed_seq, sequence_length, aggregation_fn_cls, **kwargs):
+        super().__init__(name, seed_seq, sequence_length, aggregation_fn_cls)
         generator_class = self._rng.choice([BernoulliProcess, MarkovChain])
         kwargs["n_states"] = 2
         self.generator = generator_class(self._rng, BINARY, self.window, **kwargs)
@@ -87,8 +87,8 @@ class BinaryFeature(TemporalFeature):
 
 class CategoricalFeature(TemporalFeature):
     """Categorical feature"""
-    def __init__(self, name, seed_seq, sequence_length, aggregation_fn, **kwargs):
-        super().__init__(name, seed_seq, sequence_length, aggregation_fn)
+    def __init__(self, name, seed_seq, sequence_length, aggregation_fn_cls, **kwargs):
+        super().__init__(name, seed_seq, sequence_length, aggregation_fn_cls)
         generator_class = self._rng.choice([MarkovChain])
         kwargs["n_states"] = kwargs.get("n_states", self._rng.integers(3, 5, endpoint=True))
         self.generator = generator_class(self._rng, CATEGORICAL, self.window, **kwargs)
@@ -96,8 +96,8 @@ class CategoricalFeature(TemporalFeature):
 
 class ContinuousFeature(TemporalFeature):
     """Continuous feature"""
-    def __init__(self, name, seed_seq, sequence_length, aggregation_fn, **kwargs):
-        super().__init__(name, seed_seq, sequence_length, aggregation_fn)
+    def __init__(self, name, seed_seq, sequence_length, aggregation_fn_cls, **kwargs):
+        super().__init__(name, seed_seq, sequence_length, aggregation_fn_cls)
         generator_class = self._rng.choice([MarkovChain])
         self.generator = generator_class(self._rng, CONTINUOUS, self.window, **kwargs)
 
@@ -107,15 +107,15 @@ def get_feature(args, name):
     seed_seq = args.rng.bit_generator._seed_seq.spawn(1)[0]  # pylint: disable = protected-access
     if args.synthesis_type == STATIC:
         return StaticBinaryFeature(name, seed_seq)
-    aggregation_fn = get_aggregation_fn(args.rng)
+    aggregation_fn_cls = get_aggregation_fn_cls(args.rng)
     kwargs = {"window_independent": args.window_independent}
     feature_class = args.rng.choice([BinaryFeature, CategoricalFeature, ContinuousFeature], p=[1/4, 1/4, 1/2])  # noqa: E226
-    if isinstance(aggregation_fn, Max):
+    if aggregation_fn_cls is Max:
         # Avoid low-variance features by sampling continuous or high-state-count categorical feature
         feature_class = args.rng.choice([CategoricalFeature, ContinuousFeature], p=[1/4, 3/4])  # noqa: E226
         if feature_class == CategoricalFeature:
             kwargs["n_states"] = args.rng.integers(4, 5, endpoint=True)
-    feature = feature_class(name, seed_seq, args.sequence_length, aggregation_fn, **kwargs)
+    feature = feature_class(name, seed_seq, args.sequence_length, aggregation_fn_cls, **kwargs)
     args.logger.info(f"Generating feature class {feature_class.__name__} with window {feature.window} and"
-                     f" aggregation_fn {aggregation_fn.__class__.__name__}")
+                     f" aggregation_fn {aggregation_fn_cls.__name__}")
     return feature

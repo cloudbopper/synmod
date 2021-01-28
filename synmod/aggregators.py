@@ -57,32 +57,57 @@ class StaticAggregator(Aggregator):
 
 class AggregationFunction(ABC):
     """Aggregation function base class"""
-    def __init__(self, operator):
-        self._operator = operator
+    NONLINEARITY_OPERATORS = [lambda x: x, np.abs, np.square]
+
+    def __init__(self, rng, window):
+        self._nonlinearity_operator = rng.choice(AggregationFunction.NONLINEARITY_OPERATORS)
+        self._window = window
+        self._sequence_operator = None
+        self.ordering_important = False
 
     def operate(self, sequences):
         """Operate on sequences for given feature"""
-        return np.apply_along_axis(self._operator, 1, sequences)  # sequences: instances X timesteps
-
-
-class Slope(AggregationFunction):
-    """Computes slope of inputs"""
-    def __init__(self):
-        super().__init__(lambda seq: (seq[-1] - seq[0]) / seq.shape[0])
-
-
-class Average(AggregationFunction):
-    """Computes average of inputs"""
-    def __init__(self):
-        super().__init__(np.average)
+        return self._nonlinearity_operator(np.apply_along_axis(self._sequence_operator, 1, sequences))  # sequences: instances X timesteps
 
 
 class Max(AggregationFunction):
     """Computes max of inputs"""
-    def __init__(self):
-        super().__init__(np.max)
+    def __init__(self, rng, window):
+        super().__init__(rng, window)
+        self._sequence_operator = np.max
 
 
-def get_aggregation_fn(rng):
+class Average(AggregationFunction):
+    """Computes average of inputs"""
+    def __init__(self, rng, window):
+        super().__init__(rng, window)
+        self._sequence_operator = np.average
+
+
+class MonotonicWeightedAverage(AggregationFunction):
+    """Computes weighted average of inputs with monotically increasing weights"""
+    def __init__(self, rng, window):
+        super().__init__(rng, window)
+        window_size = window[1] - window[0] + 1
+        weights = np.linspace(1, 2, window_size)
+        self._sequence_operator = lambda seq: seq.dot(weights)
+        self.ordering_important = window_size > 1
+
+
+class RandomWeightedAverage(AggregationFunction):
+    """Computes weighted average of inputs with random weights"""
+    def __init__(self, rng, window):
+        super().__init__(rng, window)
+        window_size = window[1] - window[0] + 1
+        weights = np.linspace(1, 2, window_size)
+        rng.shuffle(weights)
+        self._sequence_operator = lambda seq: seq.dot(weights)
+        self.ordering_important = window_size > 1
+
+
+AGGREGATION_OPERATORS = [Max, Average, MonotonicWeightedAverage, RandomWeightedAverage]
+
+
+def get_aggregation_fn_cls(rng):
     """Sample aggregation function for feature"""
-    return rng.choice([Average, Max, Slope])()
+    return rng.choice(AGGREGATION_OPERATORS)
