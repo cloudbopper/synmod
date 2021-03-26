@@ -87,7 +87,7 @@ pytest-regressions==2.0.0
 pytest-runner==5.2
 python-dateutil==2.8.1
 pytz==2019.3
-PyYAML==5.3
+PyYAML==5.4
 pyzmq==18.1.1
 qtconsole==4.6.0
 readme-renderer==24.0
