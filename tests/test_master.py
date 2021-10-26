@@ -9,7 +9,7 @@ import numpy as np
 
 import synmod
 from synmod import master, constants
-from tests.utils import pre_test, post_test
+from tests.utils import pre_test, post_test, round_fp
 
 
 # pylint: disable = invalid-name, redefined-outer-name, protected-access
@@ -58,7 +58,7 @@ def test_reproducible_classifier(tmpdir, data_regression, caplog):
         _, data, model = master.main()
     post_test(caplog, output_dir)
     labels = model.predict(data, labels=True)
-    data_regression.check(data.tobytes() + labels.tobytes())
+    data_regression.check(round_fp(data).tobytes() + labels.tobytes())
 
 
 def test_reproducible_regressor(tmpdir, data_regression, caplog):
@@ -72,7 +72,7 @@ def test_reproducible_regressor(tmpdir, data_regression, caplog):
         _, data, model = master.main()
     post_test(caplog, output_dir)
     labels = model.predict(data)
-    data_regression.check(data.tobytes() + labels.tobytes())
+    data_regression.check(round_fp(data).tobytes() + round_fp(labels).tobytes())
 
 
 def test_reproducible_write_outputs(tmpdir, data_regression, file_regression, caplog):
@@ -88,11 +88,11 @@ def test_reproducible_write_outputs(tmpdir, data_regression, file_regression, ca
     post_test(caplog, output_dir)
     with open(f"{output_dir}/{constants.SUMMARY_FILENAME}", "rb") as summary_file:
         summary = json.load(summary_file)
-    file_regression.check(json.dumps(summary, indent=2), extension=".json")
+    file_regression.check(json.dumps(round_fp(summary), indent=2), extension=".json")
     with open(f"{output_dir}/{constants.MODEL_FILENAME}", "rb") as model_file:
         model = cloudpickle.load(model_file)
     labels = model.predict(data, labels=True)
-    data_regression.check(data.tobytes() + labels.tobytes())
+    data_regression.check(round_fp(data).tobytes() + labels.tobytes())
 
 
 def test_reproducible_standardize_features(tmpdir, data_regression, file_regression, caplog):
@@ -109,11 +109,11 @@ def test_reproducible_standardize_features(tmpdir, data_regression, file_regress
     post_test(caplog, output_dir)
     with open(f"{output_dir}/{constants.SUMMARY_FILENAME}", "rb") as summary_file:
         summary = json.load(summary_file)
-    file_regression.check(json.dumps(summary, indent=2), extension=".json")
+    file_regression.check(json.dumps(round_fp(summary), indent=2), extension=".json")
     with open(f"{output_dir}/{constants.MODEL_FILENAME}", "rb") as model_file:
         model = cloudpickle.load(model_file)
     labels = model.predict(data, labels=True)
-    data_regression.check(data.tobytes() + labels.tobytes())
+    data_regression.check(round_fp(data).tobytes() + labels.tobytes())
 
 
 def test_interface(tmpdir, caplog):

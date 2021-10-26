@@ -2,6 +2,8 @@
 
 import logging
 
+import numpy as np
+
 
 def setup_logfile(caplog):
     """Set up logfile for test"""
@@ -25,3 +27,18 @@ def pre_test(func_name, tmpdir, caplog):
     output_dir = "%s/output_dir_%s" % (tmpdir, func_name)
     setup_logfile(caplog)
     return output_dir
+
+
+def round_fp(data):
+    """Round FP values in data to avoid regression test errors due to FP precision variations across platforms"""
+    dtype = type(data)
+    if dtype == float:
+        return round(data, 8)
+    elif dtype == np.ndarray:
+        return np.round(data, 8)
+    elif dtype == dict:
+        for key, value in data.items():
+            data[key] = round_fp(value)
+    elif dtype == list:
+        return [round_fp(item) for item in data]
+    return data
