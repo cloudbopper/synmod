@@ -114,7 +114,7 @@ def get_window(args):
 def gen_polynomial(args, relevant_features):
     """Generate polynomial which decides the ground truth and noisy model"""
     # Note: using sympy to build function appears to be 1.5-2x slower than erstwhile raw numpy implementation (for linear terms)
-    sym_features = sympy.symbols(["x_%d" % x for x in range(args.num_features)])
+    sym_features = sympy.symbols([f"x_{x}" for x in range(args.num_features)])
     sym_noise = sympy.Symbol("beta", real=True)  # multiplier for irrelevant features in approximate model
     relevant_feature_map = {}  # map of relevant feature sets to coefficients
     # Generate polynomial expression
@@ -123,7 +123,7 @@ def gen_polynomial(args, relevant_features):
     sym_polynomial_fn = update_interaction_terms(args, relevant_features, relevant_feature_map, sym_features, sym_polynomial_fn)
     # Linear terms
     sym_polynomial_fn = update_linear_terms(args, relevant_features, relevant_feature_map, sym_features, sym_noise, sym_polynomial_fn)
-    args.logger.info("Ground truth polynomial:\ny = %s" % sym_polynomial_fn)
+    args.logger.info(f"Ground truth polynomial:\ny = {sym_polynomial_fn}")
     # Generate model expression
     polynomial_fn = lambdify([sym_features, sym_noise], sym_polynomial_fn, "numpy")
     return Polynomial(relevant_feature_map, sym_polynomial_fn, polynomial_fn)

@@ -17,8 +17,7 @@ def test_regressor1(tmpdir, caplog):
     """Test synthetic data generation"""
     output_dir = pre_test(sys._getframe().f_code.co_name, tmpdir, caplog)
     cmd = ("python -m synmod -synthesis_type temporal -model_type regressor -num_instances 100 -num_features 10 -sequence_length 20 "
-           "-fraction_relevant_features 0.5 -include_interaction_only_features 1 -output_dir {0} -seed {1}"
-           .format(output_dir, constants.SEED))
+           f"-fraction_relevant_features 0.5 -include_interaction_only_features 1 -output_dir {output_dir} -seed {constants.SEED}")
     pass_args = cmd.split()[2:]
     with patch.object(sys, 'argv', pass_args):
         master.main()
@@ -29,8 +28,7 @@ def test_subprocess1(tmpdir, caplog):
     """Test synthetic data generation"""
     output_dir = pre_test(sys._getframe().f_code.co_name, tmpdir, caplog)
     cmd = ("python -m synmod -synthesis_type temporal -model_type regressor -num_instances 100 -num_features 10 -sequence_length 20 "
-           "-fraction_relevant_features 0.5 -include_interaction_only_features 1 -output_dir {0} -seed {1}"
-           .format(output_dir, constants.SEED))
+           f"-fraction_relevant_features 0.5 -include_interaction_only_features 1 -output_dir {output_dir} -seed {constants.SEED}")
     subprocess.check_call(cmd, shell=True)
     post_test(caplog, output_dir)
 
@@ -39,8 +37,7 @@ def test_classifier1(tmpdir, caplog):
     """Test synthetic data generation"""
     output_dir = pre_test(sys._getframe().f_code.co_name, tmpdir, caplog)
     cmd = ("python -m synmod -synthesis_type temporal -model_type classifier -num_instances 100 -num_features 10 -sequence_length 20 "
-           "-fraction_relevant_features 0.5 -include_interaction_only_features 1 -output_dir {0} -seed {1}"
-           .format(output_dir, constants.SEED))
+           f"-fraction_relevant_features 0.5 -include_interaction_only_features 1 -output_dir {output_dir} -seed {constants.SEED}")
     pass_args = cmd.split()[2:]
     with patch.object(sys, 'argv', pass_args):
         master.main()
@@ -51,8 +48,7 @@ def test_reproducible_classifier(tmpdir, data_regression, caplog):
     """Reproducibility of results regression test"""
     output_dir = pre_test(sys._getframe().f_code.co_name, tmpdir, caplog)
     cmd = ("python -m synmod -synthesis_type temporal -model_type classifier -num_instances 100 -num_features 10 -sequence_length 20 "
-           "-fraction_relevant_features 0.8 -include_interaction_only_features 1 -output_dir {0} -seed {1}"
-           .format(output_dir, constants.SEED))
+           f"-fraction_relevant_features 0.8 -include_interaction_only_features 1 -output_dir {output_dir} -seed {constants.SEED}")
     pass_args = cmd.split()[2:]
     with patch.object(sys, 'argv', pass_args):
         _, data, model = master.main()
@@ -65,8 +61,7 @@ def test_reproducible_regressor(tmpdir, data_regression, caplog):
     """Reproducibility of results regression test"""
     output_dir = pre_test(sys._getframe().f_code.co_name, tmpdir, caplog)
     cmd = ("python -m synmod -synthesis_type temporal -model_type regressor -num_instances 100 -num_features 10 -sequence_length 20 "
-           "-fraction_relevant_features 0.8 -include_interaction_only_features 1 -output_dir {0} -seed {1}"
-           .format(output_dir, constants.SEED))
+           f"-fraction_relevant_features 0.8 -include_interaction_only_features 1 -output_dir {output_dir} -seed {constants.SEED}")
     pass_args = cmd.split()[2:]
     with patch.object(sys, 'argv', pass_args):
         _, data, model = master.main()
@@ -79,8 +74,7 @@ def test_reproducible_write_outputs(tmpdir, data_regression, file_regression, ca
     """Regression test to test reproducible human-readable summary of config/model/features and output files"""
     output_dir = pre_test(sys._getframe().f_code.co_name, tmpdir, caplog)
     cmd = ("python -m synmod -synthesis_type temporal -model_type classifier -num_instances 100 -num_features 10 -sequence_length 20 "
-           "-fraction_relevant_features 0.8 -include_interaction_only_features 1 -write_outputs 1 -output_dir {0} -seed {1}"
-           .format(output_dir, constants.SEED))
+           f"-fraction_relevant_features 0.8 -include_interaction_only_features 1 -write_outputs 1 -output_dir {output_dir} -seed {constants.SEED}")
     pass_args = cmd.split()[2:]
     with patch.object(sys, 'argv', pass_args):
         master.main()
@@ -100,8 +94,7 @@ def test_reproducible_standardize_features(tmpdir, data_regression, file_regress
     output_dir = pre_test(sys._getframe().f_code.co_name, tmpdir, caplog)
     cmd = ("python -m synmod -synthesis_type temporal -model_type classifier -num_instances 100 -num_features 10 -sequence_length 20 "
            "-fraction_relevant_features 0.8 -include_interaction_only_features 1 -write_outputs 1 "
-           "-standardize_features 1 -output_dir {0} -seed {1}"
-           .format(output_dir, constants.SEED))
+           f"-standardize_features 1 -output_dir {output_dir} -seed {constants.SEED}")
     pass_args = cmd.split()[2:]
     with patch.object(sys, 'argv', pass_args):
         master.main()

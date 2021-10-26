@@ -75,7 +75,7 @@ def configure(args):
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
     args.rng = np.random.default_rng(args.seed)
-    args.logger = get_logger(__name__, "%s/synmod.log" % args.output_dir)
+    args.logger = get_logger(__name__, f"{args.output_dir}/synmod.log")
     if args.window_independent is None:
         args.window_independent = args.rng.choice([True, False])
 
@@ -83,7 +83,7 @@ def configure(args):
 def pipeline(args):
     """Pipeline"""
     configure(args)
-    args.logger.info("Begin generating sequence data with args: %s" % args)
+    args.logger.info(f"Begin generating sequence data with args: {args}")
     features = generate_features(args)
     instances = generate_instances(args, features)
     model = M.get_model(args, features, instances)
@@ -207,7 +207,7 @@ def write_summary(args, features, model):
     summary = dict(config=config, model=model_summary, features=features_summary)
     summary_filename = f"{args.output_dir}/{constants.SUMMARY_FILENAME}"
     args.logger.info(f"Writing summary to {summary_filename}")
-    with open(summary_filename, "w") as summary_file:
+    with open(summary_filename, "w", encoding="utf-8") as summary_file:
         json.dump(summary, summary_file, indent=2, cls=JSONEncoderPlus)
     return summary
 

@@ -59,7 +59,7 @@ class BernoulliProcess(Generator):
         for cidx, cname in enumerate(cnames):
             with graph.subgraph(name=f"cluster_{cidx}") as cgraph:
                 cgraph.attr(label=clabels[cidx])
-                cgraph.node(cname, label="P(X = 1) = %1.5f" % cprobs[cidx])
+                cgraph.node(cname, label=f"P(X = 1) = {cprobs[cidx]:1.5f}")
                 cgraph.edge(cname, cname, " 1.0")
         return graph
 
@@ -159,9 +159,9 @@ class MarkovChain(Generator):
 
     def graph(self):
         graph = graphviz.Digraph()
-        label = "Markov chain\nFeature type: %s" % self._feature_type
+        label = f"Markov chain\nFeature type: {self._feature_type}"
         if self._trends:
-            label += "\nTrends: True\nInitial value: %1.5f" % self._init_value
+            label += f"\nTrends: True\nInitial value: {self._init_value:1.5f}"
         left, right = self._window
         label += f"\nWindow: [{left}, {right}]\n\n"
         graph.attr(label=label, labelloc="t")
@@ -171,16 +171,16 @@ class MarkovChain(Generator):
             clusters.append(self._out_window_states)
             clabels = ["In-window states", "Out-of-window states"]
         for cidx, cluster in enumerate(clusters):
-            with graph.subgraph(name="cluster_%d" % cidx) as cgraph:
+            with graph.subgraph(name=f"cluster_{cidx}") as cgraph:
                 cgraph.attr(label=clabels[cidx])
                 for state in cluster:
                     # pylint: disable = protected-access
-                    label = "State %s" % state._index
+                    label = f"State {state._index}"
                     if self._feature_type == CONTINUOUS:
-                        label += "\nMean: %1.5f\nSD: %1.5f" % (state._summary_stats.mean, state._summary_stats.sd)
+                        label += f"\nMean: {state._summary_stats.mean:1.5f}\nSD: {state._summary_stats.sd:1.5f}"
                     cgraph.node(state.name, label=label)
                     for oidx, ostate in enumerate(cluster):
-                        cgraph.edge(state.name, ostate.name, label=" %1.5f\t\n" % state._p[oidx])
+                        cgraph.edge(state.name, ostate.name, label=f" {state._p[oidx]:1.5f}\t\n")
         return graph
 
     def summary(self):

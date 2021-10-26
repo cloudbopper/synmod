@@ -16,15 +16,15 @@ def setup_logfile(caplog):
 def post_test(caplog, output_dir):
     """Post-test management"""
     # Write log file
-    log_filename = "{0}/test.log".format(output_dir)
-    with open(log_filename, "w") as log_file:
+    log_filename = f"{output_dir}/test.log"
+    with open(log_filename, "w", encoding="utf-8") as log_file:
         log_file.write(caplog.text)
     caplog.clear()
 
 
 def pre_test(func_name, tmpdir, caplog):
     """Pre-test setup"""
-    output_dir = "%s/output_dir_%s" % (tmpdir, func_name)
+    output_dir = f"{tmpdir}/output_dir_{func_name}"
     setup_logfile(caplog)
     return output_dir
 

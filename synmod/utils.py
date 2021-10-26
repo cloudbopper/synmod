@@ -15,13 +15,13 @@ def get_logger(name, filename, level=logging.INFO):
 
 class JSONEncoderPlus(json.JSONEncoder):
     """JSON-serialize numpy objects"""
-    def default(self, obj):  # pylint: disable = arguments-differ, method-hidden
-        if isinstance(obj, np.bool_):
-            return bool(obj)
-        if isinstance(obj, np.integer):
-            return int(obj)
-        if isinstance(obj, np.floating):
-            return float(obj)
-        if isinstance(obj, np.ndarray):
-            return obj.tolist()
-        return super().default(obj)
+    def default(self, o):
+        if isinstance(o, np.bool_):
+            return bool(o)
+        if isinstance(o, np.integer):
+            return int(o)
+        if isinstance(o, np.floating):
+            return float(o)
+        if isinstance(o, np.ndarray):
+            return o.tolist()
+        return super().default(o)
