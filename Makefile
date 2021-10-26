@@ -60,7 +60,7 @@ test: ## run tests quickly with the default Python
 	pytest -rA tests
 
 test-update-golds: ## run tests and update gold files (one pass required per regression check)
-	pytest -rA tests --force-regen
+	-pytest -rA tests --force-regen
 	pytest -rA tests --force-regen
 
 test-all: ## run tests on every Python version with tox
