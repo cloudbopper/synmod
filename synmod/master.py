@@ -38,7 +38,7 @@ def main(strargs=None):
     required.add_argument("-num_instances", help="Number of instances",
                           type=int, required=True)
     required.add_argument("-synthesis_type", help="Type of data/model synthesis to perform",
-                          choices=[constants.TEMPORAL, constants.STATIC], required=True)
+                          choices=[constants.TEMPORAL, constants.TABULAR], required=True)
     # Optional common arguments
     common = parser.add_argument_group("Common optional parameters")
     common.add_argument("-fraction_relevant_features", help="Fraction of features relevant to model",
@@ -59,14 +59,18 @@ def main(strargs=None):
     temporal.add_argument("-sequences_independent_of_windows", help="If enabled, Markov chain sequence data doesn't depend on timesteps being"
                           " inside vs. outside the window (default random)", type=strtobool, dest="window_independent")
     temporal.set_defaults(window_independent=None)
-    # TODO: the following options should be common to both synthesis types
     temporal.add_argument("-model_type", help="type of model (classifier/regressor) - default random",
                           choices=[constants.CLASSIFIER, constants.REGRESSOR], default=constants.REGRESSOR)
     temporal.add_argument("-standardize_features", help="add feature standardization (0 mean, 1 SD) to model",
                           type=strtobool)
     args = parser.parse_args(args=strargs)
-    if args.synthesis_type == constants.TEMPORAL and args.sequence_length is None:
-        parser.error(f"-sequence_length required for -synthesis_type {constants.TEMPORAL}")
+    if args.synthesis_type == constants.TEMPORAL:
+        if args.sequence_length is None:
+            parser.error(f"-sequence_length required for -synthesis_type {constants.TEMPORAL}")
+        elif args.sequence_length <= 1:
+            parser.error(f"-sequence_length must be greater than 1 for synthesis_type {constants.TEMPORAL}")
+    else:
+        args.sequence_length = 1
     return pipeline(args)
 
 
@@ -96,9 +100,11 @@ def generate_features(args):
     """Generate features"""
     def check_feature_variance(args, feature):
         """Check variance of feature's raw/temporally aggregated values"""
-        instances = np.array([feature.sample(args.sequence_length) for _ in range(constants.VARIANCE_TEST_COUNT)])
-        aggregated = instances
-        if args.synthesis_type == constants.TEMPORAL:
+        if args.synthesis_type == constants.TABULAR:
+            instances = np.array([feature.sample() for _ in range(constants.VARIANCE_TEST_COUNT)])
+            aggregated = instances
+        else:
+            instances = np.array([feature.sample(args.sequence_length) for _ in range(constants.VARIANCE_TEST_COUNT)])
             left, right = feature.window
             aggregated = feature.aggregation_fn.operate(instances[:, left: right + 1])
         return np.var(aggregated) > 1e-10
@@ -119,8 +125,8 @@ def generate_features(args):
 
 def generate_instances(args, features):
     """Generate instances"""
-    if args.synthesis_type == constants.STATIC:
-        instances = np.empty((args.num_instances, args.num_features), dtype=np.int64)
+    if args.synthesis_type == constants.TABULAR:
+        instances = np.empty((args.num_instances, args.num_features))
         for sid in range(args.num_instances):
             instances[sid] = [feature.sample() for feature in features]
     else:

@@ -14,8 +14,67 @@ OUT_WINDOW = "out-window"
 SummaryStats = namedtuple("SummaryStats", ["mean", "sd"])
 
 
+class TabularGenerator():
+    """Tabular feature generator"""
+    def __init__(self, rng):
+        self._rng = rng
+
+    def sample(self):
+        """Sample i.i.d. from generator"""
+
+    def summary(self):
+        """Summary of generator parameters"""
+
+
+class BernoulliDistribution(TabularGenerator):
+    """Bernoulli distribution generator"""
+    def __init__(self, rng, **kwargs):
+        super().__init__(rng)
+        self._p = kwargs.get("p", self._rng.uniform(0.01, 0.99))
+
+    def sample(self):
+        return self._rng.binomial(1, self._p)
+
+    def summary(self):
+        return dict(name=self.__class__.__name__,
+                    prob=self._p)
+
+class CategoricalDistribution(TabularGenerator):
+    """Categorical distribution generator"""
+    def __init__(self, rng, **kwargs):
+        super().__init__(rng)
+        self._size = kwargs.get("size", self._rng.integers(2, 5, endpoint=True))
+        self._values = np.arange(2, 2 + self._size)
+        self._p = rng.uniform(size=self._size)
+        self._p /= self._p.sum()
+
+    def sample(self):
+        return self._rng.choice(self._values, p=self._p)
+
+    def summary(self):
+        return dict(name=self.__class__.__name__,
+                    values=self._values,
+                    probs=self._p)
+
+
+class NormalDistribution(TabularGenerator):
+    """Categorical distribution generator"""
+    def __init__(self, rng):
+        super().__init__(rng)
+        self._mean = rng.uniform(-1, 1)
+        self._sd = rng.uniform(0.1) * 0.05
+
+    def sample(self):
+        return self._rng.normal(self._mean, self._sd)
+
+    def summary(self):
+        return dict(name=self.__class__.__name__,
+                    mean=self._mean,
+                    sd=self._sd)
+
+
 class Generator(ABC):
-    """Generator base class"""
+    """Sequence generator base class"""
     def __init__(self, rng, feature_type, window):
         self._rng = rng
         self._feature_type = feature_type

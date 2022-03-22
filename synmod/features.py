@@ -4,7 +4,8 @@ from abc import ABC
 
 import numpy as np
 
-from synmod.constants import BINARY, CATEGORICAL, CONTINUOUS, STATIC
+from synmod.constants import BINARY, CATEGORICAL, CONTINUOUS, TABULAR
+from synmod.generators import BernoulliDistribution, CategoricalDistribution, NormalDistribution
 from synmod.generators import BernoulliProcess, MarkovChain
 from synmod.aggregators import Max, get_aggregation_fn_cls
 
@@ -27,20 +28,41 @@ class Feature(ABC):
                     type=self.__class__.__name__)
 
 
-class StaticBinaryFeature(Feature):
-    """Binary static feature"""
+class TabularFeature(Feature):
+    """Tabular feature"""
     def __init__(self, name, seed_seq):
         super().__init__(name, seed_seq)
-        self.prob = self._rng.uniform()
+        self.generator = None
 
     def sample(self, *args, **kwargs):
-        """Sample value for binary feature"""
-        return self._rng.binomial(1, self.prob)
+        """Sample value from generator"""
+        return self.generator.sample()
 
     def summary(self):
         summary = super().summary()
-        summary.update(dict(prob=self.prob))
+        summary.update(dict(generator=self.generator.summary()))
         return summary
+
+
+class TabularBinaryFeature(TabularFeature):
+    """Tabular binary feature"""
+    def __init__(self, name, seed_seq):
+        super().__init__(name, seed_seq)
+        self.generator = BernoulliDistribution(self._rng)
+
+class TabularCategoricalFeature(TabularFeature):
+    """Tabular binary feature"""
+    def __init__(self, name, seed_seq):
+        super().__init__(name, seed_seq)
+        self.generator = CategoricalDistribution(self._rng)
+
+
+class TabularContinuousFeature(TabularFeature):
+    """Tabular binary feature"""
+    def __init__(self, name, seed_seq):
+        super().__init__(name, seed_seq)
+        generator_class = self._rng.choice([NormalDistribution])
+        self.generator = generator_class(self._rng)
 
 
 class TemporalFeature(Feature):
@@ -70,6 +92,8 @@ class TemporalFeature(Feature):
     def get_window(self, sequence_length):
         """Randomly select a window for the feature where the model should operate in"""
         assert sequence_length is not None  # TODO: handle variable-length sequence case
+        if sequence_length == 1:
+            return (1, 1)  # tabular features
         # TODO: allow soft-edged windows (smooth decay of influence of feature values outside window)
         right = self._rng.choice(range(sequence_length // 2, sequence_length))
         left = self._rng.choice(range(0, right))
@@ -105,17 +129,21 @@ class ContinuousFeature(TemporalFeature):
 def get_feature(args, name):
     """Return randomly selected feature"""
     seed_seq = args.rng.bit_generator._seed_seq.spawn(1)[0]  # pylint: disable = protected-access
-    if args.synthesis_type == STATIC:
-        return StaticBinaryFeature(name, seed_seq)
-    aggregation_fn_cls = get_aggregation_fn_cls(args.rng)
-    kwargs = {"window_independent": args.window_independent}
-    feature_class = args.rng.choice([BinaryFeature, CategoricalFeature, ContinuousFeature], p=[1/4, 1/4, 1/2])  # noqa: E226
-    if aggregation_fn_cls is Max:
-        # Avoid low-variance features by sampling continuous or high-state-count categorical feature
-        feature_class = args.rng.choice([CategoricalFeature, ContinuousFeature], p=[1/4, 3/4])  # noqa: E226
-        if feature_class == CategoricalFeature:
-            kwargs["n_states"] = args.rng.integers(4, 5, endpoint=True)
-    feature = feature_class(name, seed_seq, args.sequence_length, aggregation_fn_cls, **kwargs)
-    args.logger.info(f"Generating feature class {feature_class.__name__} with window {feature.window} and"
-                     f" aggregation_fn {aggregation_fn_cls.__name__}")
-    return feature
+    if args.synthesis_type == TABULAR:
+        feature_class = args.rng.choice([TabularBinaryFeature, TabularCategoricalFeature, TabularContinuousFeature],
+                                        p=[1/4, 1/4, 1/2])  # noqa: E226
+        args.logger.info(f"Generating feature class {feature_class.__name__}")
+        return feature_class(name, seed_seq)
+    else:
+        aggregation_fn_cls = get_aggregation_fn_cls(args.rng)
+        kwargs = {"window_independent": args.window_independent}
+        feature_class = args.rng.choice([BinaryFeature, CategoricalFeature, ContinuousFeature], p=[1/4, 1/4, 1/2])  # noqa: E226
+        if aggregation_fn_cls is Max:
+            # Avoid low-variance features by sampling continuous or high-state-count categorical feature
+            feature_class = args.rng.choice([CategoricalFeature, ContinuousFeature], p=[1/4, 3/4])  # noqa: E226
+            if feature_class == CategoricalFeature:
+                kwargs["n_states"] = args.rng.integers(4, 5, endpoint=True)
+        feature = feature_class(name, seed_seq, args.sequence_length, aggregation_fn_cls, **kwargs)
+        args.logger.info(f"Generating feature class {feature_class.__name__} with window {feature.window} and"
+                         f" aggregation_fn {aggregation_fn_cls.__name__}")
+        return feature

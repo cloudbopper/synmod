@@ -46,8 +46,8 @@ class Aggregator():
         return matrix
 
 
-class StaticAggregator(Aggregator):
-    """Returns input as-is without aggregation (for static features)"""
+class TabularAggregator(Aggregator):
+    """Returns input as-is without aggregation (for tabular features)"""
     def __init__(self):
         super().__init__(None, None)
 
