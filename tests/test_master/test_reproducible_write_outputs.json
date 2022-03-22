@@ -101,7 +101,7 @@
     },
     {
       "name": "2",
-      "type": "ContinuousFeature",
+      "type": "NumericFeature",
       "window": [
         1,
         10
@@ -309,7 +309,7 @@
     },
     {
       "name": "4",
-      "type": "ContinuousFeature",
+      "type": "NumericFeature",
       "window": [
         10,
         17
@@ -484,7 +484,7 @@
     },
     {
       "name": "6",
-      "type": "ContinuousFeature",
+      "type": "NumericFeature",
       "window": [
         6,
         11
@@ -604,7 +604,7 @@
     },
     {
       "name": "7",
-      "type": "ContinuousFeature",
+      "type": "NumericFeature",
       "window": [
         6,
         13
@@ -665,7 +665,7 @@
     },
     {
       "name": "8",
-      "type": "ContinuousFeature",
+      "type": "NumericFeature",
       "window": [
         7,
         13

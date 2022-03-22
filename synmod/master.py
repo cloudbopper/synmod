@@ -51,6 +51,8 @@ def main(strargs=None):
                         default=None, type=int)
     common.add_argument("-write_outputs", help="flag to enable writing outputs (alternative to using python API)",
                         type=strtobool)
+    common.add_argument("-feature_type_distribution", help="option to specify distribution of binary/categorical/numeric"
+                        "features types", nargs=3, type=float, default=[0.25, 0.25, 0.50])
     # Temporal synthesis arguments
     temporal = parser.add_argument_group("Temporal synthesis parameters")
     temporal.add_argument("-sequence_length", help="Length of regularly sampled sequence",

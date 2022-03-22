@@ -7,7 +7,7 @@ import numpy as np
 import graphviz
 from scipy.stats import bernoulli
 
-from synmod.constants import CONTINUOUS
+from synmod.constants import NUMERIC
 
 IN_WINDOW = "in-window"
 OUT_WINDOW = "out-window"
@@ -39,6 +39,7 @@ class BernoulliDistribution(TabularGenerator):
         return dict(name=self.__class__.__name__,
                     prob=self._p)
 
+
 class CategoricalDistribution(TabularGenerator):
     """Categorical distribution generator"""
     def __init__(self, rng, **kwargs):
@@ -58,7 +59,7 @@ class CategoricalDistribution(TabularGenerator):
 
 
 class NormalDistribution(TabularGenerator):
-    """Categorical distribution generator"""
+    """Normal distribution generator"""
     def __init__(self, rng):
         super().__init__(rng)
         self._mean = rng.uniform(-1, 1)
@@ -142,7 +143,7 @@ class MarkovChain(Generator):
             self._p = None  # Transition probabilities from state
             self._states = None  # States to transition to
             self.sample = None  # Function to sample from state distribution
-            if self._chain._feature_type == CONTINUOUS:
+            if self._chain._feature_type == NUMERIC:
                 self._summary_stats = SummaryStats(None, None)
 
         def gen_distributions(self):
@@ -152,7 +153,7 @@ class MarkovChain(Generator):
             self._states = self._chain._in_window_states if self._state_type == IN_WINDOW else self._chain._out_window_states
             n_states = len(self._states)
             self._p = rng.uniform(size=n_states)
-            if feature_type == CONTINUOUS:
+            if feature_type == NUMERIC:
                 mean = rng.uniform(0.1)
                 sd = rng.uniform(0.1) * 0.05
                 if self._chain._trends:
@@ -180,7 +181,7 @@ class MarkovChain(Generator):
         n_states = kwargs.get("n_states", self._rng.integers(2, 5, endpoint=True))
         self._window_independent = kwargs.get("window_independent", False)  # Sampled state independent of window location
         # If trends enabled, sampled values increase/decrease/stay constant according to trends corresponding to each state:
-        self._trends = self._rng.choice([True, False]) if self._feature_type == CONTINUOUS else False
+        self._trends = self._rng.choice([True, False]) if self._feature_type == NUMERIC else False
         if self._trends and not self._window_independent:
             n_states = min(n_states, 4)  # Separate chains in/out of window, so avoid too many trends within window
         self._init_value = self._rng.uniform(-1, 1)  # Initial value of Markov chain, used for trends
@@ -235,7 +236,7 @@ class MarkovChain(Generator):
                 for state in cluster:
                     # pylint: disable = protected-access
                     label = f"State {state._index}"
-                    if self._feature_type == CONTINUOUS:
+                    if self._feature_type == NUMERIC:
                         label += f"\nMean: {state._summary_stats.mean:1.5f}\nSD: {state._summary_stats.sd:1.5f}"
                     cgraph.node(state.name, label=label)
                     for oidx, ostate in enumerate(cluster):
@@ -244,7 +245,7 @@ class MarkovChain(Generator):
 
     def summary(self):
         summary = {}
-        if self._feature_type == CONTINUOUS:
+        if self._feature_type == NUMERIC:
             summary["trends"] = self._trends
             if self._trends:
                 summary["init_value"] = self._init_value
@@ -255,7 +256,7 @@ class MarkovChain(Generator):
                 # pylint: disable = protected-access
                 state_summary["index"] = state._index
                 state_summary["p"] = state._p
-                if self._feature_type == CONTINUOUS:
+                if self._feature_type == NUMERIC:
                     mean, sd = state._summary_stats
                     state_summary["stats"] = dict(mean=mean, sd=sd)
                 states_summary[idx] = state_summary
