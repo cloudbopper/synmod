@@ -1,6 +1,5 @@
 """Master pipeline"""
 
-# pylint: disable = fixme, unused-argument, unused-variable, unused-import
 
 import argparse
 from distutils.util import strtobool
@@ -138,7 +137,7 @@ def generate_instances(args, features):
     return instances
 
 
-def generate_labels(args, model, instances):
+def generate_labels(model, instances):
     """Generate labels"""
     # TODO: decide how to handle multivariate case
     # TODO: joint generation of labels and features
