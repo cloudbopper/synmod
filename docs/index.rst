@@ -1,4 +1,4 @@
-Welcome to anamod's documentation!
+Welcome to synmod's documentation!
 ========================================
 
 .. toctree::
